@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BridgeFlow — Management de Transition</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c27;--surface3:#222230;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --text:#f0ede8;--text2:#8a8799;--text3:#5a5870;
+  --accent:#c8a96e;--accent2:#e8c98e;
+  --green:#4ade80;--red:#f87171;--blue:#60a5fa;--purple:#a78bfa;
+  --sidebar:240px;--radius:16px;--radius-sm:12px;--radius-xs:8px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;background:var(--bg);}
+body{font-family:'DM Sans',sans-serif;color:var(--text);display:flex;}
+
+/* ── SIDEBAR ── */
+.sidebar{width:var(--sidebar);height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;position:fixed;left:0;top:0;z-index:50;}
+.sidebar-logo{padding:24px 20px 20px;border-bottom:1px solid var(--border);}
+.logo{font-family:'DM Serif Display',serif;font-size:22px;color:var(--accent);}
+.logo span{color:var(--text2);font-style:italic;}
+.logo-sub{font-size:10px;color:var(--text3);margin-top:3px;letter-spacing:0.05em;}
+.sidebar-nav{flex:1;padding:12px 10px;overflow-y:auto;}
+.nav-section{font-size:10px;color:var(--text3);font-weight:600;letter-spacing:0.08em;padding:0 10px;margin:16px 0 6px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-xs);cursor:pointer;transition:all 0.2s;color:var(--text2);font-size:13px;font-weight:500;position:relative;margin-bottom:2px;}
+.nav-item:hover{background:var(--surface2);color:var(--text);}
+.nav-item.active{background:rgba(200,169,110,0.12);color:var(--accent);}
+.nav-item.active .nav-icon{color:var(--accent);}
+.nav-icon{font-size:16px;width:20px;text-align:center;flex-shrink:0;}
+.nav-badge{background:var(--red);color:#fff;border-radius:50px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:auto;}
+.nav-badge-accent{background:rgba(200,169,110,0.2);color:var(--accent);border-radius:50px;padding:1px 6px;font-size:10px;font-weight:600;margin-left:auto;}
+.sidebar-footer{padding:14px 20px;border-top:1px solid var(--border);}
+.user-card{display:flex;align-items:center;gap:10px;}
+.user-av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--purple));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#0a0a0f;flex-shrink:0;}
+.user-name{font-size:13px;font-weight:600;}
+.user-role{font-size:10px;color:var(--text3);margin-top:1px;}
+
+/* ── MAIN ── */
+.main{margin-left:var(--sidebar);flex:1;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+.topbar{height:58px;background:rgba(13,13,22,0.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 28px;flex-shrink:0;}
+.topbar-title{font-family:'DM Serif Display',serif;font-size:20px;color:var(--text);}
+.topbar-right{display:flex;align-items:center;gap:12px;}
+.view-pill{display:flex;background:var(--surface);border-radius:50px;padding:3px;border:1px solid var(--border);}
+.vpill-btn{padding:6px 16px;border-radius:50px;font-size:12px;font-weight:500;cursor:pointer;color:var(--text2);border:none;background:none;font-family:'DM Sans',sans-serif;transition:all 0.2s;}
+.vpill-btn.active{background:var(--accent);color:#0a0a0f;}
+.notif-btn{width:34px;height:34px;border-radius:50%;background:var(--surface);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;position:relative;}
+.notif-dot-abs{position:absolute;top:4px;right:4px;width:7px;height:7px;background:var(--red);border-radius:50%;border:1.5px solid var(--bg);}
+
+/* ── CONTENT ── */
+.content{flex:1;overflow-y:auto;overflow-x:hidden;}
+.content::-webkit-scrollbar{width:6px;}
+.content::-webkit-scrollbar-track{background:transparent;}
+.content::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+.screen{display:none;padding:28px;}
+.screen.active{display:block;}
+
+/* ── CARDS / SHARED ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;margin-bottom:16px;}
+.card-title{font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px;margin-bottom:16px;}
+.card-title .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex-shrink:0;}
+.status-badge{padding:3px 10px;border-radius:50px;font-size:11px;font-weight:600;}
+.badge-pending{background:rgba(200,169,110,0.15);color:var(--accent);}
+.badge-matched{background:rgba(74,222,128,0.15);color:var(--green);}
+.badge-declined{background:rgba(248,113,113,0.12);color:var(--red);}
+.tag{background:var(--surface2);border:1px solid var(--border2);border-radius:50px;padding:4px 11px;font-size:12px;color:var(--text2);cursor:pointer;transition:all 0.2s;display:inline-block;}
+.tag.active{background:rgba(200,169,110,0.15);border-color:var(--accent);color:var(--accent);}
+.btn-primary{background:var(--accent);color:#0a0a0f;border:none;padding:10px 22px;border-radius:50px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;}
+.btn-primary:hover{background:var(--accent2);}
+.btn-secondary{background:transparent;color:var(--text);border:1px solid var(--border2);padding:9px 20px;border-radius:50px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent);}
+.section-label{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:10px;}
+
+/* ── HOME ── */
+.home-grid{display:grid;grid-template-columns:2fr 1fr;gap:20px;}
+.hero-card{background:linear-gradient(135deg,var(--surface) 0%,rgba(200,169,110,0.05) 100%);border:1px solid rgba(200,169,110,0.15);border-radius:var(--radius);padding:32px;margin-bottom:16px;}
+.hero-card h1{font-family:'DM Serif Display',serif;font-size:36px;line-height:1.15;margin-bottom:10px;}
+.hero-card h1 em{color:var(--accent);font-style:italic;}
+.hero-card p{font-size:14px;color:var(--text2);max-width:440px;line-height:1.6;margin-bottom:20px;}
+.hero-btns{display:flex;gap:10px;}
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;text-align:center;}
+.kpi-card.kpi-accent{border-color:rgba(200,169,110,0.25);background:rgba(200,169,110,0.04);}
+.kpi-card.kpi-green{border-color:rgba(74,222,128,0.2);background:rgba(74,222,128,0.03);}
+.kpi-val{font-family:'DM Serif Display',serif;font-size:32px;color:var(--text);}
+.kpi-card.kpi-accent .kpi-val{color:var(--accent);}
+.kpi-card.kpi-green .kpi-val{color:var(--green);}
+.kpi-lbl{font-size:11px;color:var(--text3);margin-top:3px;}
+.feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.feature-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:18px;}
+.feature-icon{font-size:28px;margin-bottom:10px;}
+.feature-title{font-size:14px;font-weight:600;margin-bottom:4px;}
+.feature-sub{font-size:12px;color:var(--text2);line-height:1.5;}
+
+/* ── MATCH ── */
+.match-layout{display:grid;grid-template-columns:420px 1fr;gap:24px;align-items:start;}
+.tinder-wrap{display:flex;flex-direction:column;align-items:center;}
+.tinder-stack{position:relative;width:380px;height:520px;margin-bottom:20px;}
+.tinder-card{position:absolute;width:100%;height:100%;background:var(--surface);border:1px solid var(--border2);border-radius:24px;padding:24px;cursor:grab;user-select:none;transition:transform 0.15s;overflow-y:auto;overflow-x:hidden;}
+.tinder-card::-webkit-scrollbar{width:0;}
+.tinder-card:nth-child(2){transform:rotate(-2.5deg) translateY(7px) scale(0.97);z-index:1;}
+.tinder-card:nth-child(3){transform:rotate(1.5deg) translateY(14px) scale(0.94);z-index:0;}
+.tinder-card.top{z-index:10;}
+.tinder-card.dragging{transition:none;cursor:grabbing;}
+.tinder-card.fly-left{transition:transform 0.4s ease,opacity 0.4s;transform:translateX(-130%) rotate(-20deg) !important;opacity:0;pointer-events:none;}
+.tinder-card.fly-right{transition:transform 0.4s ease,opacity 0.4s;transform:translateX(130%) rotate(20deg) !important;opacity:0;pointer-events:none;}
+.swipe-indicator{position:absolute;top:18px;border-radius:7px;padding:5px 12px;font-size:15px;font-weight:700;opacity:0;transition:opacity 0.1s;border:3px solid;pointer-events:none;z-index:20;}
+.swipe-like{right:14px;color:var(--green);border-color:var(--green);transform:rotate(12deg);}
+.swipe-pass{left:14px;color:var(--red);border-color:var(--red);transform:rotate(-12deg);}
+.tc-header{display:flex;align-items:flex-start;gap:13px;margin-bottom:14px;}
+.tc-avatar{width:50px;height:50px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0;color:#fff;}
+.tc-company{font-family:'DM Serif Display',serif;font-size:18px;line-height:1.2;}
+.tc-role{font-size:12px;color:var(--text2);margin-top:2px;}
+.tc-badge{display:inline-flex;align-items:center;background:rgba(200,169,110,0.12);border:1px solid rgba(200,169,110,0.3);border-radius:50px;padding:2px 9px;font-size:10px;color:var(--accent);margin-top:5px;}
+.tc-divider{border:none;border-top:1px solid var(--border);margin:12px 0;}
+.tc-slabel{font-size:10px;color:var(--text3);font-weight:600;letter-spacing:0.06em;margin-bottom:5px;text-transform:uppercase;}
+.tc-summary{font-size:12px;color:var(--text2);line-height:1.8;background:var(--surface2);border-radius:var(--radius-xs);padding:10px 14px;border-left:2px solid var(--accent);margin-bottom:10px;}
+.tc-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;}
+.tc-tag{background:var(--surface2);border-radius:50px;padding:2px 9px;font-size:11px;color:var(--text2);}
+.tc-info{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.tc-info-item{background:var(--surface2);border-radius:var(--radius-xs);padding:9px 11px;}
+.tc-info-val{font-size:14px;font-weight:600;}
+.tc-info-lab{font-size:10px;color:var(--text3);margin-top:1px;}
+.actions-bar{display:flex;align-items:center;gap:16px;}
+.action-btn{border:none;cursor:pointer;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:all 0.2s;font-size:22px;}
+.action-btn:hover{transform:scale(1.1);}
+.btn-pass{width:54px;height:54px;background:rgba(248,113,113,0.1);border:1.5px solid rgba(248,113,113,0.3);color:var(--red);}
+.btn-like{width:66px;height:66px;background:rgba(74,222,128,0.1);border:1.5px solid rgba(74,222,128,0.3);color:var(--green);font-size:26px;}
+.btn-info-btn{width:46px;height:46px;background:rgba(96,165,250,0.1);border:1.5px solid rgba(96,165,250,0.2);color:var(--blue);font-size:17px;}
+.hint-text{font-size:11px;color:var(--text3);margin-top:10px;}
+/* Match right panel */
+.match-right{display:flex;flex-direction:column;gap:16px;}
+.candidature-item{display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface2);border-radius:var(--radius-sm);margin-bottom:8px;}
+.ci-av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0;}
+.ci-info{flex:1;min-width:0;}
+.ci-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ci-detail{font-size:11px;color:var(--text2);margin-top:2px;}
+/* Recruteur cards */
+.cand-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:20px;margin-bottom:12px;}
+.cand-header{display:flex;align-items:center;gap:14px;margin-bottom:12px;}
+.cand-av{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;color:#fff;flex-shrink:0;}
+.cand-name{font-size:15px;font-weight:600;}
+.cand-role-txt{font-size:12px;color:var(--text2);margin-top:2px;}
+.cand-bio{font-size:12px;color:var(--text2);line-height:1.55;background:var(--surface2);border-radius:var(--radius-xs);padding:10px 12px;margin-bottom:12px;}
+.cand-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;}
+.cand-item{background:var(--surface2);border-radius:var(--radius-xs);padding:9px 11px;}
+.cand-val{font-size:13px;font-weight:600;}
+.cand-lab{font-size:10px;color:var(--text3);margin-top:1px;}
+.cand-actions{display:flex;gap:8px;}
+.btn-approve{background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.3);color:var(--green);padding:8px 20px;border-radius:50px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;}
+.btn-approve:hover{background:rgba(74,222,128,0.2);}
+.btn-decline{background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.25);color:var(--red);padding:8px 18px;border-radius:50px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;}
+.btn-cv-btn{background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.2);color:var(--blue);padding:8px 16px;border-radius:50px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+/* Match overlay */
+.match-overlay{display:none;position:fixed;inset:0;background:rgba(10,10,15,0.95);z-index:200;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:24px;}
+.match-overlay.show{display:flex;animation:fadeIn 0.3s;}
+@keyframes fadeIn{from{opacity:0;transform:scale(0.9)}to{opacity:1;transform:scale(1)}}
+.mo-emoji{font-size:68px;margin-bottom:14px;}
+.mo-title{font-family:'DM Serif Display',serif;font-size:44px;color:var(--accent);margin-bottom:8px;}
+.mo-sub{color:var(--text2);font-size:15px;margin-bottom:12px;}
+.mo-detail{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:16px 24px;margin-bottom:24px;max-width:420px;width:100%;text-align:left;}
+.mo-row{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--border);}
+.mo-row:last-child{border-bottom:none;}
+.mo-actions{display:flex;gap:12px;}
+.btn-calendly{background:linear-gradient(135deg,var(--blue),var(--purple));color:white;border:none;padding:12px 28px;border-radius:50px;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+
+/* ── SIMULATOR ── */
+.sim-layout{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;}
+.sim-left{display:flex;flex-direction:column;gap:16px;}
+.sim-right{display:flex;flex-direction:column;gap:16px;}
+.statut-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+.statut-btn{padding:7px 16px;border-radius:50px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--text2);font-family:'DM Sans',sans-serif;transition:all 0.2s;}
+.statut-btn.active{background:rgba(200,169,110,0.15);border-color:var(--accent);color:var(--accent);}
+.ae-pills{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;}
+.ae-pill{padding:5px 12px;border-radius:50px;font-size:11px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:'DM Sans',sans-serif;transition:all 0.2s;}
+.ae-pill.active{border-color:var(--purple);color:var(--purple);background:rgba(167,139,250,0.1);}
+.ae-info{font-size:11px;color:var(--text3);background:var(--surface2);border-radius:var(--radius-xs);padding:8px 12px;margin-bottom:14px;line-height:1.5;}
+.sim-slider-row{margin-bottom:16px;}
+.sim-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.sim-lbl{font-size:12px;color:var(--text2);}
+.sim-val{font-size:14px;font-weight:600;color:var(--accent);}
+input[type=range]{width:100%;accent-color:var(--accent);}
+.results-4{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:0;}
+.res-card{background:var(--surface2);border-radius:var(--radius-sm);padding:14px;text-align:center;}
+.res-val{font-size:22px;font-weight:600;}
+.res-lbl{font-size:10px;color:var(--text3);margin-top:3px;}
+.breakdown{display:flex;flex-direction:column;gap:6px;}
+.br-row{display:flex;justify-content:space-between;align-items:center;padding:9px 13px;background:var(--surface2);border-radius:var(--radius-xs);font-size:12px;}
+.br-n{color:var(--text2);}
+.br-v{font-weight:600;}
+.val-neg{color:var(--red);}
+.val-pos{color:var(--green);}
+.compare-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.compare-lbl{font-size:12px;min-width:140px;}
+.compare-bar{flex:1;height:7px;background:var(--surface2);border-radius:4px;overflow:hidden;}
+.compare-fill{height:100%;border-radius:4px;transition:width 0.4s;}
+.compare-val{font-size:12px;min-width:80px;text-align:right;}
+
+/* ── ADMIN ── */
+.admin-layout{display:grid;grid-template-columns:1fr 380px;gap:20px;align-items:start;}
+.admin-left{display:flex;flex-direction:column;gap:16px;}
+.admin-right{display:flex;flex-direction:column;gap:16px;}
+.alert-item{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface2);border-radius:var(--radius-sm);margin-bottom:8px;cursor:pointer;transition:all 0.2s;}
+.alert-item:hover{background:var(--surface3);}
+.alert-urgent{border-left:3px solid var(--red);}
+.alert-normal{border-left:3px solid var(--accent);}
+.alert-info{border-left:3px solid var(--blue);}
+.alert-icon{font-size:16px;flex-shrink:0;}
+.alert-body{flex:1;}
+.alert-title{font-size:13px;font-weight:600;}
+.alert-sub{font-size:11px;color:var(--text2);margin-top:2px;}
+.alert-action{font-size:14px;color:var(--text3);}
+/* Planning desktop */
+.planning-slot{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:var(--surface2);border-radius:var(--radius-sm);margin-bottom:8px;cursor:pointer;transition:all 0.2s;border:1px solid transparent;}
+.planning-slot:hover{border-color:var(--border2);background:var(--surface3);}
+.pslot-time{text-align:center;flex-shrink:0;min-width:52px;}
+.pslot-hour{font-size:14px;font-weight:600;}
+.pslot-dur{font-size:10px;color:var(--text3);margin-top:2px;}
+.pslot-bar{width:3px;border-radius:2px;align-self:stretch;flex-shrink:0;min-height:60px;}
+.pslot-bar.qual{background:var(--blue);}
+.pslot-bar.entreprise{background:var(--purple);}
+.pslot-bar.match{background:var(--green);}
+.pslot-body{flex:1;}
+.pslot-type{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:3px;}
+.pslot-name{font-size:14px;font-weight:600;}
+.pslot-detail{font-size:12px;color:var(--text2);margin-top:2px;}
+.pslot-format{font-size:11px;color:var(--text3);margin-top:4px;}
+.pslot-status{padding:3px 10px;border-radius:50px;font-size:11px;font-weight:600;flex-shrink:0;}
+.pstatus-todo{background:rgba(200,169,110,0.12);color:var(--accent);}
+.pstatus-confirmed{background:rgba(74,222,128,0.12);color:var(--green);}
+.pstatus-pending{background:rgba(96,165,250,0.12);color:var(--blue);}
+.pday-header{display:flex;justify-content:space-between;align-items:center;padding:4px 0;margin:16px 0 8px;}
+.pday-label{font-size:14px;font-weight:600;}
+.pday-count{font-size:11px;color:var(--text3);}
+/* Pipeline */
+.pipeline-item{background:var(--surface2);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:all 0.2s;border:1px solid transparent;}
+.pipeline-item:hover{border-color:var(--border2);background:var(--surface3);}
+.pipe-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.pipe-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;}
+.pipe-heart{font-size:16px;color:var(--accent);}
+.pipe-names{font-size:14px;font-weight:600;}
+.pipe-detail-txt{font-size:12px;color:var(--text2);margin-top:2px;}
+.pipe-progress{display:flex;align-items:center;gap:0;margin-top:10px;}
+.pipe-step{font-size:10px;color:var(--text3);white-space:nowrap;padding:2px 6px;border-radius:3px;}
+.pipe-step.done{color:var(--green);}
+.pipe-step.active{color:var(--accent);font-weight:600;}
+.pipe-line{flex:1;height:1px;background:var(--border2);}
+.pipe-line.done{background:var(--green);}
+.pipe-line.active{background:var(--accent);}
+.pipe-badge{font-size:10px;font-weight:600;padding:3px 10px;border-radius:50px;margin-left:auto;}
+.pipe-badge-interview{background:rgba(74,222,128,0.12);color:var(--green);}
+.pipe-badge-placed{background:rgba(200,169,110,0.12);color:var(--accent);}
+.pipe-badge-pending{background:rgba(96,165,250,0.12);color:var(--blue);}
+/* Entretien detail panel */
+.detail-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;display:none;}
+.detail-panel.show{display:block;animation:fadeIn 0.2s;}
+.dp-type-badge{font-size:10px;font-weight:600;padding:4px 10px;border-radius:50px;display:inline-block;margin-bottom:14px;}
+.dp-type-qual{background:rgba(96,165,250,0.12);color:var(--blue);}
+.dp-type-match{background:rgba(74,222,128,0.12);color:var(--green);}
+.dp-type-ent{background:rgba(167,139,250,0.12);color:var(--purple);}
+.dp-title{font-family:'DM Serif Display',serif;font-size:20px;margin-bottom:4px;}
+.dp-sub{font-size:12px;color:var(--text2);margin-bottom:16px;}
+.dp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+.dp-item{background:var(--surface2);border-radius:var(--radius-xs);padding:10px;}
+.dp-val{font-size:13px;font-weight:600;}
+.dp-lab{font-size:10px;color:var(--text3);margin-top:1px;}
+.dp-notes-lbl{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;}
+.dp-notes{background:var(--surface2);border-radius:var(--radius-xs);padding:12px;font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:16px;}
+.dp-actions{display:flex;flex-direction:column;gap:8px;}
+
+/* ── REGISTER ── */
+.reg-layout{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;}
+.reg-choice{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;}
+.choice-card{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:22px;cursor:pointer;transition:all 0.2s;text-align:center;}
+.choice-card:hover,.choice-card.sel{border-color:var(--accent);background:rgba(200,169,110,0.04);}
+.choice-icon{font-size:32px;margin-bottom:10px;}
+.choice-title{font-size:15px;font-weight:600;margin-bottom:4px;}
+.choice-sub{font-size:12px;color:var(--text2);}
+.reg-form{display:none;}
+.reg-form.show{display:block;}
+.steps-bar{display:flex;align-items:center;margin-bottom:20px;}
+.step-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;}
+.step-dot{width:30px;height:30px;border-radius:50%;border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text3);flex-shrink:0;transition:all 0.3s;}
+.step-dot.active{border-color:var(--accent);background:rgba(200,169,110,0.15);color:var(--accent);}
+.step-dot.done{border-color:var(--green);background:rgba(74,222,128,0.12);color:var(--green);}
+.step-lbl{font-size:10px;color:var(--text3);text-align:center;max-width:70px;line-height:1.2;}
+.step-line{flex:1;height:1px;background:var(--border2);margin:0 6px;margin-bottom:14px;}
+.step-line.done{background:var(--green);}
+.step-line.active{background:var(--accent);}
+.fgroup{display:flex;flex-direction:column;gap:5px;margin-bottom:12px;}
+.form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-group.full{grid-column:1/-1;}
+label{font-size:11px;color:var(--text2);font-weight:500;letter-spacing:0.03em;}
+input,textarea,select{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 13px;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;transition:border 0.2s;width:100%;}
+input:focus,textarea:focus,select:focus{border-color:var(--accent);}
+select option{background:var(--surface2);}
+select optgroup{background:var(--surface2);color:var(--text3);font-size:11px;font-weight:600;letter-spacing:0.03em;padding:4px 0;}
+select optgroup option{color:var(--text);font-size:13px;font-weight:400;padding-left:8px;}
+textarea{resize:none;min-height:80px;}
+.tags-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;}
+.upload-zone{border:2px dashed var(--border2);border-radius:var(--radius-sm);padding:24px;text-align:center;cursor:pointer;transition:border 0.2s;}
+.upload-zone:hover{border-color:var(--accent);}
+.upload-icon{font-size:28px;margin-bottom:6px;}
+.upload-txt{font-size:13px;color:var(--text2);}
+.human-badge{display:flex;gap:14px;align-items:flex-start;background:var(--surface2);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px;border-left:3px solid var(--accent);}
+.hb-icon{font-size:26px;flex-shrink:0;}
+.hb-title{font-size:14px;font-weight:600;margin-bottom:4px;}
+.hb-sub{font-size:12px;color:var(--text2);line-height:1.5;}
+.slots-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+.slot-btn{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:11px 8px;text-align:center;cursor:pointer;transition:all 0.2s;}
+.slot-btn:hover,.slot-btn.sel{background:rgba(200,169,110,0.12);border-color:var(--accent);}
+.slot-day{font-size:10px;color:var(--text3);margin-bottom:3px;}
+.slot-time{font-size:14px;font-weight:600;}
+.slot-dur{font-size:10px;color:var(--text3);margin-top:2px;}
+.format-row{display:flex;gap:8px;margin-bottom:14px;}
+.fmt-btn{flex:1;padding:9px;border-radius:var(--radius-sm);font-size:12px;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);text-align:center;font-family:'DM Sans',sans-serif;transition:all 0.2s;}
+.fmt-btn.active{background:rgba(200,169,110,0.12);border-color:var(--accent);color:var(--accent);}
+.confirm-screen{text-align:center;padding:40px 20px;}
+.confirm-emoji{font-size:60px;margin-bottom:16px;}
+.confirm-title{font-family:'DM Serif Display',serif;font-size:30px;margin-bottom:10px;}
+.confirm-sub{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:20px;max-width:360px;margin-left:auto;margin-right:auto;}
+.pending-steps{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;max-width:320px;margin-left:auto;margin-right:auto;}
+.pstep{padding:10px 16px;border-radius:var(--radius-sm);font-size:13px;background:var(--surface2);color:var(--text3);text-align:left;}
+.pstep.active{background:rgba(200,169,110,0.1);color:var(--accent);border:1px solid rgba(200,169,110,0.2);}
+.pstep.done{background:rgba(74,222,128,0.07);color:var(--green);border:1px solid rgba(74,222,128,0.18);}
+.contact-note{background:var(--surface2);border-radius:var(--radius-sm);padding:12px;font-size:12px;color:var(--text2);max-width:320px;margin:0 auto;}
+.calendly-strip{background:linear-gradient(135deg,rgba(96,165,250,0.07),rgba(167,139,250,0.07));border:1px solid rgba(96,165,250,0.18);border-radius:var(--radius-sm);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;}
+.cs-text{font-size:13px;font-weight:600;}
+.cs-sub{font-size:11px;color:var(--text2);margin-top:2px;}
+.btn-cal-sm{background:linear-gradient(135deg,var(--blue),var(--purple));color:white;border:none;padding:8px 16px;border-radius:50px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo">Bridge<span>Flow</span></div>
+    <div class="logo-sub">Management de Transition</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Principal</div>
+    <div class="nav-item active" id="nav-home" onclick="goScreen('home')">
+      <span class="nav-icon">⌂</span> Accueil
+    </div>
+    <div class="nav-item" id="nav-match" onclick="goScreen('match')">
+      <span class="nav-icon">◈</span> Match
+      <span class="nav-badge">5</span>
+    </div>
+    <div class="nav-item" id="nav-simulator" onclick="goScreen('simulator')">
+      <span class="nav-icon">⊞</span> Simulateur TJM
+    </div>
+    <div class="nav-section">Administration</div>
+    <div class="nav-item" id="nav-admin" onclick="goScreen('admin')">
+      <span class="nav-icon">📊</span> Tableau de bord
+      <span class="nav-badge">4</span>
+    </div>
+    <div class="nav-item" id="nav-planning" onclick="goScreen('admin');setTimeout(()=>document.getElementById('planningAnchor').scrollIntoView({behavior:'smooth'}),100)">
+      <span class="nav-icon">📅</span> Planning entretiens
+    </div>
+    <div class="nav-item" id="nav-pipeline" onclick="goScreen('admin');setTimeout(()=>document.getElementById('pipelineAnchor').scrollIntoView({behavior:'smooth'}),100)">
+      <span class="nav-icon">⇄</span> Pipeline matchs
+    </div>
+    <div class="nav-section">Inscription</div>
+    <div class="nav-item" id="nav-register" onclick="goScreen('register')">
+      <span class="nav-icon">⊕</span> Nouvelle inscription
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-card">
+      <div class="user-av">BF</div>
+      <div><div class="user-name">BridgeFlow Admin</div><div class="user-role">Fondateur</div></div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="topbarTitle">Accueil</div>
+    <div class="topbar-right">
+      <div class="view-pill" id="viewPill" style="display:none;">
+        <button class="vpill-btn active" id="btnC" onclick="setView('candidat')">Vue Manager</button>
+        <button class="vpill-btn" id="btnR" onclick="setView('recruteur')">Vue Recruteur <span style="display:inline-block;width:7px;height:7px;background:var(--red);border-radius:50%;margin-left:4px;vertical-align:middle;"></span></button>
+      </div>
+      <div class="notif-btn" title="Notifications">
+        🔔
+        <div class="notif-dot-abs"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- HOME -->
+    <div class="screen active" id="sc-home">
+      <div class="hero-card">
+        <h1>Là où les grandes décisions<br><em>se préparent.</em></h1>
+        <p>Chaque profil a sa mission. Trouvez la vôtre. Plateforme de management de transition par sélection humaine — pas d'algorithme sans intervention.</p>
+        <div class="hero-btns">
+          <button class="btn-primary" onclick="goScreen('match')">Découvrir les missions →</button>
+          <button class="btn-secondary" onclick="goScreen('admin')">Tableau de bord Admin</button>
+        </div>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi-card"><div class="kpi-val">247</div><div class="kpi-lbl">Managers actifs</div></div>
+        <div class="kpi-card"><div class="kpi-val">83</div><div class="kpi-lbl">Missions ouvertes</div></div>
+        <div class="kpi-card kpi-accent"><div class="kpi-val">12</div><div class="kpi-lbl">Matchs en cours</div></div>
+        <div class="kpi-card kpi-green"><div class="kpi-val">4.2j</div><div class="kpi-lbl">Délai moyen placement</div></div>
+      </div>
+      <div class="feature-grid">
+        <div class="feature-card"><div class="feature-icon">⚡</div><div class="feature-title">Placement en 72h</div><div class="feature-sub">Matching sur compétences, TJM et zone géographique. Résultat : 2-3 profils ciblés, pas 20 CVs.</div></div>
+        <div class="feature-card"><div class="feature-icon">🤝</div><div class="feature-title">Match mutuel</div><div class="feature-sub">Candidat postule + Recruteur valide = Calendly automatique déclenché pour les deux parties.</div></div>
+        <div class="feature-card"><div class="feature-icon">🔍</div><div class="feature-title">Sélection humaine</div><div class="feature-sub">Chaque profil passe par un entretien de qualification avec notre équipe avant d'être publié.</div></div>
+      </div>
+    </div>
+
+    <!-- MATCH -->
+    <div class="screen" id="sc-match">
+
+      <!-- VUE CANDIDAT -->
+      <div id="view-cand">
+        <div class="match-layout">
+          <div class="tinder-wrap">
+            <div style="margin-bottom:14px;"><div style="font-size:18px;font-weight:600;margin-bottom:3px;">Missions disponibles</div><div style="font-size:12px;color:var(--text2);">Swipez ou utilisez les boutons pour postuler ✦</div></div>
+            <div class="tinder-stack" id="tinderStack"></div>
+            <div class="actions-bar">
+              <button class="action-btn btn-pass" onclick="swipe('left')" title="Passer">✕</button>
+              <button class="action-btn btn-like" onclick="swipe('right')" title="Postuler">♥</button>
+              <button class="action-btn btn-info-btn" onclick="toggleCandidatures()" title="Mes candidatures">≡</button>
+            </div>
+            <div class="hint-text">← Passer &nbsp;&nbsp;&nbsp; Postuler →</div>
+          </div>
+          <div class="match-right">
+            <div class="card" id="candidaturesCard">
+              <div class="card-title"><span class="dot"></span>Mes candidatures</div>
+              <div id="candidaturesContent"><div style="text-align:center;padding:30px;color:var(--text3);"><div style="font-size:36px;">🎯</div><div style="font-size:13px;margin-top:8px;">Pas encore de candidatures</div></div></div>
+            </div>
+            <div class="card">
+              <div class="card-title"><span class="dot"></span>Comment ça marche</div>
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                <div style="display:flex;gap:10px;align-items:flex-start;"><div style="width:22px;height:22px;border-radius:50%;background:rgba(200,169,110,0.15);color:var(--accent);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</div><div style="font-size:12px;color:var(--text2);">Swipez à droite pour postuler à une mission</div></div>
+                <div style="display:flex;gap:10px;align-items:flex-start;"><div style="width:22px;height:22px;border-radius:50%;background:rgba(200,169,110,0.15);color:var(--accent);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</div><div style="font-size:12px;color:var(--text2);">L'entreprise examine votre profil de son côté</div></div>
+                <div style="display:flex;gap:10px;align-items:flex-start;"><div style="width:22px;height:22px;border-radius:50%;background:rgba(200,169,110,0.15);color:var(--accent);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;">3</div><div style="font-size:12px;color:var(--text2);">Si les deux valident → Calendly automatique</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VUE RECRUTEUR -->
+      <div id="view-rec" style="display:none;">
+        <div style="margin-bottom:18px;"><div style="font-size:18px;font-weight:600;margin-bottom:3px;">Candidats en attente de validation</div><div style="font-size:12px;color:var(--text2);">Validez les profils qui correspondent à vos missions ouvertes</div></div>
+        <div id="recruiterCards"></div>
+        <div id="recruiterMatches" style="display:none;margin-top:24px;">
+          <div style="font-size:16px;font-weight:600;color:var(--accent);margin-bottom:12px;">Matchs confirmés 🎉</div>
+          <div id="recruiterMatchList"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIMULATOR -->
+    <div class="screen" id="sc-simulator">
+      <div style="font-size:22px;font-weight:600;font-family:'DM Serif Display',serif;margin-bottom:20px;">Simulateur TJM</div>
+      <div class="sim-layout">
+        <div class="sim-left">
+          <div class="card">
+            <div class="card-title"><span class="dot"></span>Statut juridique</div>
+            <div class="statut-tabs">
+              <button class="statut-btn active" onclick="setStatut('ae',this)">Auto-entrepreneur</button>
+              <button class="statut-btn" onclick="setStatut('sasu',this)">SASU</button>
+              <button class="statut-btn" onclick="setStatut('eurl',this)">EURL / SARL</button>
+              <button class="statut-btn" onclick="setStatut('portage',this)">Salarié porté</button>
+            </div>
+            <div id="ae-block">
+              <div class="ae-pills">
+                <button class="ae-pill active" onclick="setAE('bnc',this)">BNC — Libéral</button>
+                <button class="ae-pill" onclick="setAE('bic',this)">BIC — Prestations</button>
+                <button class="ae-pill" onclick="setAE('artisan',this)">Artisan / Commerçant</button>
+              </div>
+              <div class="ae-info" id="ae-info">BNC (Bénéfices Non Commerciaux) : professions libérales non réglementées — consultants, formateurs, managers. Taux cotisations : 22,2%. Plafond CA : 77 700 €/an.</div>
+            </div>
+            <div class="sim-slider-row">
+              <div class="sim-top"><span class="sim-lbl">TJM facturé (€/jour)</span><span class="sim-val" id="sTJM-v">900 €</span></div>
+              <input type="range" min="400" max="2000" step="50" value="900" id="sTJM" oninput="calcSim()">
+            </div>
+            <div class="sim-slider-row">
+              <div class="sim-top"><span class="sim-lbl">Jours travaillés / mois</span><span class="sim-val" id="sJours-v">18 j</span></div>
+              <input type="range" min="8" max="22" step="1" value="18" id="sJours" oninput="calcSim()">
+            </div>
+          </div>
+          <div class="results-4" id="simResults"></div>
+          <div class="card">
+            <div class="card-title"><span class="dot"></span>Décomposition détaillée</div>
+            <div class="breakdown" id="simBreakdown"></div>
+          </div>
+        </div>
+        <div class="sim-right">
+          <div class="card">
+            <div class="card-title"><span class="dot"></span>Comparaison tous statuts</div>
+            <div id="simCompare"></div>
+          </div>
+          <div class="card" style="background:rgba(200,169,110,0.04);border-color:rgba(200,169,110,0.15);">
+            <div class="card-title"><span class="dot"></span>Conseil BridgeFlow</div>
+            <div id="simAdvice" style="font-size:12px;color:var(--text2);line-height:1.6;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN -->
+    <div class="screen" id="sc-admin">
+      <div style="font-size:22px;font-weight:600;font-family:'DM Serif Display',serif;margin-bottom:6px;">Tableau de bord</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:20px;">Vue d'ensemble de votre activité BridgeFlow</div>
+      <div class="kpi-row" style="margin-bottom:20px;">
+        <div class="kpi-card"><div class="kpi-val">12</div><div class="kpi-lbl">Candidats actifs</div></div>
+        <div class="kpi-card"><div class="kpi-val">7</div><div class="kpi-lbl">Missions ouvertes</div></div>
+        <div class="kpi-card kpi-accent"><div class="kpi-val">3</div><div class="kpi-lbl">Matchs en cours</div></div>
+        <div class="kpi-card kpi-green"><div class="kpi-val">2</div><div class="kpi-lbl">Entretiens planifiés</div></div>
+      </div>
+
+      <div class="admin-layout">
+        <div class="admin-left">
+
+          <!-- ALERTES -->
+          <div class="card">
+            <div class="card-title"><span class="dot"></span>Actions requises <span style="background:var(--red);color:#fff;border-radius:50px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:4px;">4</span></div>
+            <div class="alert-item alert-urgent" onclick="openDetail('e1')"><div class="alert-icon">🔴</div><div class="alert-body"><div class="alert-title">Qualifier Jean-Marc Rousseau</div><div class="alert-sub">Entretien de qualification à planifier · DAF · Paris · TJM 1 050 €/j</div></div><div class="alert-action">→</div></div>
+            <div class="alert-item alert-normal" onclick="openDetail('e2')"><div class="alert-icon">🟡</div><div class="alert-body"><div class="alert-title">Appel Groupe Leclerc en attente</div><div class="alert-sub">Qualification besoin entreprise · Demain 10h30 · Marie Dupont, DG</div></div><div class="alert-action">→</div></div>
+            <div class="alert-item alert-normal" onclick="openDetail('e3')"><div class="alert-icon">🟡</div><div class="alert-body"><div class="alert-title">Match mutuel à confirmer</div><div class="alert-sub">Sophie Lefevre × MedTech Solutions · DRH · Lyon</div></div><div class="alert-action">→</div></div>
+            <div class="alert-item alert-info" onclick="openDetail('e4')"><div class="alert-icon">🔵</div><div class="alert-body"><div class="alert-title">Pierre Audibert — CV reçu</div><div class="alert-sub">Profil COO Supply Chain à examiner avant validation · TJM 1 200 €/j</div></div><div class="alert-action">→</div></div>
+          </div>
+
+          <!-- PLANNING -->
+          <div class="card" id="planningAnchor">
+            <div class="card-title"><span class="dot"></span>Planning entretiens — Semaine du 26 mai
+              <span style="display:flex;gap:5px;margin-left:auto;">
+                <span style="font-size:10px;padding:2px 8px;background:rgba(96,165,250,0.1);color:var(--blue);border-radius:3px;">■ Qualif. candidat</span>
+                <span style="font-size:10px;padding:2px 8px;background:rgba(167,139,250,0.1);color:var(--purple);border-radius:3px;">■ Qualif. entreprise</span>
+                <span style="font-size:10px;padding:2px 8px;background:rgba(74,222,128,0.1);color:var(--green);border-radius:3px;">■ Entretien match</span>
+              </span>
+            </div>
+            <div class="pday-header"><div class="pday-label">Lundi 26 mai</div><div class="pday-count">2 entretiens</div></div>
+            <div class="planning-slot" onclick="openDetail('e1')">
+              <div class="pslot-time"><div class="pslot-hour">09h00</div><div class="pslot-dur">30 min</div></div>
+              <div class="pslot-bar qual"></div>
+              <div class="pslot-body"><div class="pslot-type">Qualification candidat</div><div class="pslot-name">Jean-Marc Rousseau</div><div class="pslot-detail">DAF · Paris · TJM 1 050 €/j · Dispo immédiate</div><div class="pslot-format">📞 Téléphone</div></div>
+              <div class="pslot-status pstatus-todo">À faire</div>
+            </div>
+            <div class="planning-slot" onclick="openDetail('e2')">
+              <div class="pslot-time"><div class="pslot-hour">14h00</div><div class="pslot-dur">30 min</div></div>
+              <div class="pslot-bar entreprise"></div>
+              <div class="pslot-body"><div class="pslot-type">Qualification entreprise</div><div class="pslot-name">Groupe Leclerc Industries</div><div class="pslot-detail">DAF recherché · Budget 1 100 €/j · Paris 8e · 9 mois</div><div class="pslot-format">💻 Visio — Marie Dupont, DG</div></div>
+              <div class="pslot-status pstatus-todo">À faire</div>
+            </div>
+            <div class="pday-header" style="margin-top:8px;"><div class="pday-label">Mardi 27 mai</div><div class="pday-count">1 entretien</div></div>
+            <div class="planning-slot" onclick="openDetail('e3')">
+              <div class="pslot-time"><div class="pslot-hour">10h30</div><div class="pslot-dur">30 min</div></div>
+              <div class="pslot-bar match"></div>
+              <div class="pslot-body"><div class="pslot-type">🎯 Entretien de match</div><div class="pslot-name">Sophie Lefevre × MedTech Solutions</div><div class="pslot-detail">DRH · Lyon · 950 €/j · 6 mois</div><div class="pslot-format">📅 Calendly envoyé aux deux parties</div></div>
+              <div class="pslot-status pstatus-confirmed">Confirmé</div>
+            </div>
+            <div class="pday-header" style="margin-top:8px;"><div class="pday-label">Jeudi 29 mai</div><div class="pday-count">2 entretiens</div></div>
+            <div class="planning-slot" onclick="openDetail('e4')">
+              <div class="pslot-time"><div class="pslot-hour">09h00</div><div class="pslot-dur">30 min</div></div>
+              <div class="pslot-bar qual"></div>
+              <div class="pslot-body"><div class="pslot-type">Qualification candidat</div><div class="pslot-name">Pierre Audibert</div><div class="pslot-detail">COO / Supply Chain · Île-de-France · TJM 1 200 €/j</div><div class="pslot-format">💻 Visio Google Meet</div></div>
+              <div class="pslot-status pstatus-todo">À faire</div>
+            </div>
+            <div class="planning-slot" onclick="openDetail('e5')">
+              <div class="pslot-time"><div class="pslot-hour">15h30</div><div class="pslot-dur">30 min</div></div>
+              <div class="pslot-bar match"></div>
+              <div class="pslot-body"><div class="pslot-type">🎯 Entretien de match</div><div class="pslot-name">Jean-Marc Rousseau × Foncière Nexus</div><div class="pslot-detail">DG transition · Bordeaux · 1 500 €/j · 18 mois</div><div class="pslot-format">📅 En attente confirmation Calendly</div></div>
+              <div class="pslot-status pstatus-pending">En attente</div>
+            </div>
+          </div>
+
+          <!-- PIPELINE -->
+          <div class="card" id="pipelineAnchor">
+            <div class="card-title"><span class="dot"></span>Pipeline matchs</div>
+            <div class="pipeline-item" onclick="openDetail('e3')">
+              <div class="pipe-header"><div class="pipe-av" style="background:#7c3aed;">JR</div><div class="pipe-heart">♥</div><div class="pipe-av" style="background:#b45309;">RS</div><div style="margin-left:8px;"><div class="pipe-names">Jean-Marc Rousseau × Renault Supply Chain</div><div class="pipe-detail-txt">DAF · 1 100 €/j · Paris · 9 mois</div></div><span class="pipe-badge pipe-badge-interview">Entretien</span></div>
+              <div class="pipe-progress"><div class="pipe-step done">✓ Qualif. cand.</div><div class="pipe-line done"></div><div class="pipe-step done">✓ Qualif. entrep.</div><div class="pipe-line active"></div><div class="pipe-step active">⏳ Entretien match</div><div class="pipe-line"></div><div class="pipe-step">Placé</div></div>
+            </div>
+            <div class="pipeline-item" onclick="openDetail('e3')">
+              <div class="pipe-header"><div class="pipe-av" style="background:#059669;">SL</div><div class="pipe-heart">♥</div><div class="pipe-av" style="background:#059669;">MS</div><div style="margin-left:8px;"><div class="pipe-names">Sophie Lefevre × MedTech Solutions</div><div class="pipe-detail-txt">DRH · 950 €/j · Lyon · 6 mois</div></div><span class="pipe-badge pipe-badge-placed">En cours</span></div>
+              <div class="pipe-progress"><div class="pipe-step done">✓ Qualif. cand.</div><div class="pipe-line done"></div><div class="pipe-step done">✓ Qualif. entrep.</div><div class="pipe-line done"></div><div class="pipe-step done">✓ Entretien match</div><div class="pipe-line active"></div><div class="pipe-step active">⏳ Placé</div></div>
+            </div>
+            <div class="pipeline-item" onclick="openDetail('e4')">
+              <div class="pipe-header"><div class="pipe-av" style="background:#b45309;">PA</div><div class="pipe-heart">♥</div><div class="pipe-av" style="background:#0369a1;">FN</div><div style="margin-left:8px;"><div class="pipe-names">Pierre Audibert × Foncière Nexus</div><div class="pipe-detail-txt">COO · 1 300 €/j · Bordeaux · 12 mois</div></div><span class="pipe-badge pipe-badge-pending">En attente</span></div>
+              <div class="pipe-progress"><div class="pipe-step done">✓ Qualif. cand.</div><div class="pipe-line active"></div><div class="pipe-step active">⏳ Qualif. entrep.</div><div class="pipe-line"></div><div class="pipe-step">Entretien match</div><div class="pipe-line"></div><div class="pipe-step">Placé</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DETAIL PANEL (RIGHT) -->
+        <div class="admin-right">
+          <div class="detail-panel" id="detailPanel">
+            <div id="detailContent"></div>
+          </div>
+          <div class="card">
+            <div class="card-title"><span class="dot"></span>Activité récente</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;gap:10px;align-items:flex-start;font-size:12px;padding:8px;background:var(--surface2);border-radius:var(--radius-xs);"><span style="font-size:14px;">🎯</span><div><div style="font-weight:500;color:var(--text);">Match confirmé</div><div style="color:var(--text2);margin-top:2px;">S. Lefevre × MedTech · il y a 2h</div></div></div>
+              <div style="display:flex;gap:10px;align-items:flex-start;font-size:12px;padding:8px;background:var(--surface2);border-radius:var(--radius-xs);"><span style="font-size:14px;">📄</span><div><div style="font-weight:500;color:var(--text);">CV reçu</div><div style="color:var(--text2);margin-top:2px;">Pierre Audibert · il y a 3h</div></div></div>
+              <div style="display:flex;gap:10px;align-items:flex-start;font-size:12px;padding:8px;background:var(--surface2);border-radius:var(--radius-xs);"><span style="font-size:14px;">🏢</span><div><div style="font-weight:500;color:var(--text);">Nouvelle mission</div><div style="color:var(--text2);margin-top:2px;">Foncière Nexus · DG · hier</div></div></div>
+              <div style="display:flex;gap:10px;align-items:flex-start;font-size:12px;padding:8px;background:var(--surface2);border-radius:var(--radius-xs);"><span style="font-size:14px;">📅</span><div><div style="font-weight:500;color:var(--text);">Entretien planifié</div><div style="color:var(--text2);margin-top:2px;">S. Lefevre × MedTech · Mardi 10h30</div></div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title"><span class="dot"></span>Revenus plateforme</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;justify-content:space-between;font-size:13px;padding:8px 12px;background:var(--surface2);border-radius:var(--radius-xs);"><span style="color:var(--text2);">En cours (3 managers)</span><span style="font-weight:600;">5 400 €/mois</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;padding:8px 12px;background:var(--surface2);border-radius:var(--radius-xs);"><span style="color:var(--text2);">Marge moyenne</span><span style="font-weight:600;color:var(--accent);">18%</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;padding:8px 12px;background:rgba(200,169,110,0.06);border:1px solid rgba(200,169,110,0.15);border-radius:var(--radius-xs);"><span style="color:var(--text2);">Projection annuelle</span><span style="font-weight:600;color:var(--accent);">~71 000 €</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REGISTER -->
+    <div class="screen" id="sc-register">
+      <div style="font-size:22px;font-weight:600;font-family:'DM Serif Display',serif;margin-bottom:6px;">Nouvelle inscription</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:20px;">Chaque inscription passe par un échange humain avec notre équipe. Pas de profil publié sans validation.</div>
+
+      <div id="reg-choice-wrap">
+        <div class="reg-choice">
+          <div class="choice-card" onclick="selectRole('candidat',this)"><div class="choice-icon">👤</div><div class="choice-title">Je suis manager</div><div class="choice-sub">Je cherche des missions de transition</div></div>
+          <div class="choice-card" onclick="selectRole('entreprise',this)"><div class="choice-icon">🏢</div><div class="choice-title">Entreprise</div><div class="choice-sub">Je cherche un manager de transition</div></div>
+        </div>
+      </div>
+
+      <!-- CANDIDAT -->
+      <div class="reg-form" id="rf-candidat">
+        <div class="steps-bar" id="csteps-bar"></div>
+        <div id="cstep-1-wrap">
+          <div class="card">
+            <div class="card-title"><span class="dot"></span>Étape 1 — Profil manager</div>
+            <div class="form-grid-2">
+              <div class="form-group"><label>Prénom</label><input type="text" placeholder="Jean"></div>
+              <div class="form-group"><label>Nom</label><input type="text" placeholder="Dupont"></div>
+              <div class="form-group"><label>Email</label><input type="email" placeholder="jean@email.com"></div>
+              <div class="form-group"><label>Téléphone</label><input type="tel" placeholder="+33 6 12 34 56 78"></div>
+              <div class="form-group"><label>Fonction</label><select><option value="">Sélectionner...</option>
+<optgroup label="── Finance &amp; Gestion">
+<option>DAF / Directeur Financier</option>
+<option>RAF / Responsable Administratif et Financier</option>
+<option>Directeur Contrôle de Gestion</option>
+<option>Contrôleur de Gestion Senior</option>
+<option>Contrôleur de Gestion</option>
+<option>Directeur FP&amp;A</option>
+<option>FP&amp;A Manager</option>
+<option>Directeur Trésorerie</option>
+<option>Trésorier</option>
+<option>Directeur Comptable</option>
+<option>Responsable Comptable</option>
+<option>Auditeur Interne</option>
+<option>Directeur Audit &amp; Risques</option>
+<option>Credit Manager</option>
+<option>Directeur Fiscal</option>
+</optgroup>
+<optgroup label="── Ressources Humaines">
+<option>DRH / Directeur RH</option>
+<option>RRH Généraliste</option>
+<option>Directeur Compensation &amp; Benefits</option>
+<option>C&amp;B Manager</option>
+<option>Directeur Talent Acquisition</option>
+<option>Responsable Recrutement</option>
+<option>Directeur Formation &amp; Développement</option>
+<option>Directeur Relations Sociales</option>
+<option>Responsable Relations Sociales</option>
+<option>HRBP Senior</option>
+<option>Directeur Paie &amp; Administration RH</option>
+<option>Directeur Diversité &amp; Inclusion</option>
+</optgroup>
+<optgroup label="── Juridique &amp; Compliance">
+<option>Directeur Juridique</option>
+<option>Juriste Senior</option>
+<option>Responsable Compliance</option>
+<option>Directeur Compliance &amp; Éthique</option>
+<option>Data Protection Officer (DPO)</option>
+<option>Responsable Affaires Réglementaires</option>
+</optgroup>
+<optgroup label="── Direction Générale &amp; Stratégie">
+<option>CEO / Directeur Général</option>
+<option>COO / Directeur des Opérations</option>
+<option>Directeur de Transition / Turnaround</option>
+<option>Directeur Stratégie &amp; Développement</option>
+<option>Directeur M&amp;A</option>
+<option>Chief of Staff</option>
+<option>Secrétaire Général</option>
+<option>Directeur de Cabinet</option>
+</optgroup>
+<optgroup label="── Supply Chain &amp; Industrie">
+<option>Directeur Supply Chain</option>
+<option>Directeur Industriel</option>
+<option>Directeur des Achats</option>
+<option>Responsable Achats</option>
+<option>Directeur Logistique</option>
+<option>Directeur Production</option>
+<option>Directeur Qualité</option>
+<option>Directeur HSE</option>
+<option>Directeur Maintenance</option>
+<option>Directeur Planning &amp; Ordonnancement</option>
+</optgroup>
+<optgroup label="── Systèmes d'Information">
+<option>DSI / Directeur SI</option>
+<option>CTO / Directeur Technique</option>
+<option>Directeur Digital &amp; Transformation</option>
+<option>Directeur Infrastructure &amp; Sécurité</option>
+<option>RSSI</option>
+<option>PMO / Directeur de Projet</option>
+<option>Directeur ERP</option>
+<option>Directeur Data &amp; BI</option>
+<option>Architecte SI</option>
+<option>Directeur Cybersécurité</option>
+</optgroup>
+<optgroup label="── Commerce &amp; Marketing">
+<option>Directeur Commercial</option>
+<option>Directeur des Ventes</option>
+<option>Directeur Marketing</option>
+<option>Directeur Communication</option>
+<option>Directeur Export / International</option>
+<option>Directeur Développement</option>
+<option>Directeur CRM &amp; Fidélisation</option>
+<option>Directeur Trade Marketing</option>
+<option>Directeur Pricing</option>
+</optgroup></select></div>
+              <div class="form-group"><label>TJM souhaité (€/j)</label><input type="number" placeholder="900"></div>
+              <div class="form-group"><label>Localisation</label><input type="text" placeholder="Paris, Île-de-France"></div>
+              <div class="form-group"><label>Disponibilité</label><select><option value="">Sélectionner...</option><option>Immédiate (72h)</option><option>Sous 2 semaines</option><option>Sous 1 mois</option></select></div>
+              <div class="form-group"><label>Statut juridique</label><select><option value="">Sélectionner...</option><option>AE — BNC</option><option>AE — BIC</option><option>AE — Artisan</option><option>SASU</option><option>EURL / SARL</option><option>Salarié porté</option></select></div>
+              <div class="form-group"><label>Mobilité</label><select><option value="">Sélectionner...</option><option>Île-de-France</option><option>France entière</option><option>Europe</option><option>International</option></select></div>
+              <div class="form-group full"><label>Résumé expérience</label><textarea placeholder="15 ans d'expérience en direction financière..."></textarea></div>
+              <div class="form-group full"><label>Secteurs d'expertise</label><div class="tags-wrap"><span class="tag" onclick="toggleTag(this)">Industrie</span><span class="tag" onclick="toggleTag(this)">Finance</span><span class="tag" onclick="toggleTag(this)">Tech / IT</span><span class="tag" onclick="toggleTag(this)">Santé</span><span class="tag" onclick="toggleTag(this)">Retail</span><span class="tag" onclick="toggleTag(this)">Énergie</span><span class="tag" onclick="toggleTag(this)">Immobilier</span><span class="tag" onclick="toggleTag(this)">Services</span><span class="tag" onclick="toggleTag(this)">Agroalimentaire</span><span class="tag" onclick="toggleTag(this)">Conseil</span></div></div>
+              <div class="form-group full"><label>CV (PDF)</label><div class="upload-zone" onclick="document.getElementById('cvFile').click()"><div class="upload-icon">📄</div><div class="upload-txt">Glissez votre CV ici ou cliquez pour uploader</div><div style="font-size:11px;color:var(--text3);margin-top:4px;">PDF, max 5MB</div></div><input type="file" id="cvFile" accept=".pdf" style="display:none" onchange="handleCV(this)"><div id="cvName" style="font-size:11px;color:var(--green);margin-top:5px;display:none;"></div></div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:16px;"><button class="btn-primary" onclick="goRStep('c',2)">Continuer — Choisir un créneau →</button></div>
+          </div>
+        </div>
+        <div id="cstep-2-wrap" style="display:none;">
+          <div class="card">
+            <div class="card-title"><span class="dot"></span>Étape 2 — Entretien de qualification</div>
+            <div class="human-badge"><div class="hb-icon">🤝</div><div><div class="hb-title">Un échange humain avant tout</div><div class="hb-sub">Je rencontre personnellement chaque manager — vérification des références, challenge de l'expertise. 20-30 min, téléphone ou visio.</div></div></div>
+            <div class="section-label" style="margin-bottom:10px;">Choisissez un créneau</div>
+            <div class="slots-grid" id="slots-cand"></div>
+            <div class="section-label" style="margin-bottom:8px;">Format préféré</div>
+            <div class="format-row"><div class="fmt-btn active" onclick="setFmt(this)">📞 Téléphone</div><div class="fmt-btn" onclick="setFmt(this)">💻 Visio (Google Meet)</div></div>
+            <div class="fgroup"><label>Message optionnel</label><textarea placeholder="Contrainte particulière, disponibilité alternative..." style="min-height:60px;"></textarea></div>
+            <div style="display:flex;gap:10px;margin-top:14px;"><button class="btn-secondary" onclick="goRStep('c',1)">← Retour</button><button class="btn-primary" onclick="goRStep('c',3)">Confirmer le créneau →</button></div>
+          </div>
+        </div>
+        <div id="cstep-3-wrap" style="display:none;">
+          <div class="card"><div class="confirm-screen"><div class="confirm-emoji">✅</div><div class="confirm-title">Demande envoyée !</div><div class="confirm-sub">Votre profil et CV ont bien été reçus. Confirmation du créneau par email sous 2h.</div><div class="pending-steps"><div class="pstep done">✓ Profil soumis</div><div class="pstep active">⏳ Entretien de qualification à venir</div><div class="pstep">○ Validation et accès à BridgeFlow</div></div><div class="contact-note">📧 Email de confirmation envoyé · <span style="color:var(--accent);">contact@bridgeflow.io</span></div></div></div>
+        </div>
+      </div>
+
+      <!-- ENTREPRISE -->
+      <div class="reg-form" id="rf-entreprise">
+        <div class="steps-bar" id="esteps-bar"></div>
+        <div id="estep-1-wrap">
+          <div class="card">
+            <div class="card-title"><span class="dot"></span>Étape 1 — Votre besoin</div>
+            <div class="form-grid-2">
+              <div class="form-group"><label>Nom de l'entreprise</label><input type="text" placeholder="Acme Corp"></div>
+              <div class="form-group"><label>Votre nom et fonction</label><input type="text" placeholder="Marie Martin, DG"></div>
+              <div class="form-group"><label>Email</label><input type="email" placeholder="contact@acme.com"></div>
+              <div class="form-group"><label>Téléphone direct</label><input type="tel" placeholder="+33 1 23 45 67 89"></div>
+              <div class="form-group"><label>Taille entreprise</label><select><option value="">Sélectionner...</option><option>TPE</option><option>PME (10-250)</option><option>ETI (250-5000)</option><option>Grand groupe</option></select></div>
+              <div class="form-group"><label>Profil recherché</label><select><option value="">Sélectionner...</option>
+<optgroup label="── Finance &amp; Gestion">
+<option>DAF / Directeur Financier</option>
+<option>RAF / Responsable Administratif et Financier</option>
+<option>Directeur Contrôle de Gestion</option>
+<option>Contrôleur de Gestion Senior</option>
+<option>Contrôleur de Gestion</option>
+<option>Directeur FP&amp;A</option>
+<option>FP&amp;A Manager</option>
+<option>Directeur Trésorerie</option>
+<option>Trésorier</option>
+<option>Directeur Comptable</option>
+<option>Responsable Comptable</option>
+<option>Auditeur Interne</option>
+<option>Directeur Audit &amp; Risques</option>
+<option>Credit Manager</option>
+<option>Directeur Fiscal</option>
+</optgroup>
+<optgroup label="── Ressources Humaines">
+<option>DRH / Directeur RH</option>
+<option>RRH Généraliste</option>
+<option>Directeur Compensation &amp; Benefits</option>
+<option>C&amp;B Manager</option>
+<option>Directeur Talent Acquisition</option>
+<option>Responsable Recrutement</option>
+<option>Directeur Formation &amp; Développement</option>
+<option>Directeur Relations Sociales</option>
+<option>Responsable Relations Sociales</option>
+<option>HRBP Senior</option>
+<option>Directeur Paie &amp; Administration RH</option>
+<option>Directeur Diversité &amp; Inclusion</option>
+</optgroup>
+<optgroup label="── Juridique &amp; Compliance">
+<option>Directeur Juridique</option>
+<option>Juriste Senior</option>
+<option>Responsable Compliance</option>
+<option>Directeur Compliance &amp; Éthique</option>
+<option>Data Protection Officer (DPO)</option>
+<option>Responsable Affaires Réglementaires</option>
+</optgroup>
+<optgroup label="── Direction Générale &amp; Stratégie">
+<option>CEO / Directeur Général</option>
+<option>COO / Directeur des Opérations</option>
+<option>Directeur de Transition / Turnaround</option>
+<option>Directeur Stratégie &amp; Développement</option>
+<option>Directeur M&amp;A</option>
+<option>Chief of Staff</option>
+<option>Secrétaire Général</option>
+<option>Directeur de Cabinet</option>
+</optgroup>
+<optgroup label="── Supply Chain &amp; Industrie">
+<option>Directeur Supply Chain</option>
+<option>Directeur Industriel</option>
+<option>Directeur des Achats</option>
+<option>Responsable Achats</option>
+<option>Directeur Logistique</option>
+<option>Directeur Production</option>
+<option>Directeur Qualité</option>
+<option>Directeur HSE</option>
+<option>Directeur Maintenance</option>
+<option>Directeur Planning &amp; Ordonnancement</option>
+</optgroup>
+<optgroup label="── Systèmes d'Information">
+<option>DSI / Directeur SI</option>
+<option>CTO / Directeur Technique</option>
+<option>Directeur Digital &amp; Transformation</option>
+<option>Directeur Infrastructure &amp; Sécurité</option>
+<option>RSSI</option>
+<option>PMO / Directeur de Projet</option>
+<option>Directeur ERP</option>
+<option>Directeur Data &amp; BI</option>
+<option>Architecte SI</option>
+<option>Directeur Cybersécurité</option>
+</optgroup>
+<optgroup label="── Commerce &amp; Marketing">
+<option>Directeur Commercial</option>
+<option>Directeur des Ventes</option>
+<option>Directeur Marketing</option>
+<option>Directeur Communication</option>
+<option>Directeur Export / International</option>
+<option>Directeur Développement</option>
+<option>Directeur CRM &amp; Fidélisation</option>
+<option>Directeur Trade Marketing</option>
+<option>Directeur Pricing</option>
+</optgroup></select></div>
+              <div class="form-group"><label>Durée estimée</label><select><option>3 mois</option><option>6 mois</option><option selected>9 mois</option><option>12 mois</option><option>18 mois +</option></select></div>
+              <div class="form-group"><label>TJM budget (€/j)</label><input type="number" placeholder="950"></div>
+              <div class="form-group"><label>Localisation</label><input type="text" placeholder="Lyon, Auvergne-Rhône-Alpes"></div>
+              <div class="form-group"><label>Démarrage souhaité</label><select><option>Immédiat</option><option>Sous 2 semaines</option><option>Sous 1 mois</option></select></div>
+              <div class="form-group full"><label>Contexte et enjeux de la mission</label><textarea style="min-height:100px" placeholder="Dans le cadre d'une restructuration, nous cherchons un DAF pour piloter..."></textarea></div>
+              <div class="form-group full"><label>Compétences requises</label><div class="tags-wrap"><span class="tag" onclick="toggleTag(this)">Restructuration</span><span class="tag" onclick="toggleTag(this)">Turnaround</span><span class="tag" onclick="toggleTag(this)">M&A</span><span class="tag" onclick="toggleTag(this)">Transformation digitale</span><span class="tag" onclick="toggleTag(this)">Levée de fonds</span><span class="tag" onclick="toggleTag(this)">Change management</span><span class="tag" onclick="toggleTag(this)">ERP / SAP</span><span class="tag" onclick="toggleTag(this)">International</span></div></div>
+            </div>
+            <div style="margin-top:14px;"><button class="btn-primary" onclick="goRStep('e',2)">Continuer — Choisir un créneau d'appel →</button></div>
+          </div>
+        </div>
+        <div id="estep-2-wrap" style="display:none;">
+          <div class="card">
+            <div class="card-title"><span class="dot"></span>Étape 2 — Appel de qualification</div>
+            <div class="human-badge"><div class="hb-icon">📞</div><div><div class="hb-title">Je prends chaque appel personnellement</div><div class="hb-sub">Avant de vous présenter des profils, je comprends précisément votre contexte. 20-30 min. Résultat : 2-3 profils ciblés sous 24h — pas une liste de 20 CVs.</div></div></div>
+            <div class="section-label" style="margin-bottom:10px;">Choisissez un créneau</div>
+            <div class="slots-grid" id="slots-ent"></div>
+            <div class="fgroup"><label>Informations complémentaires (optionnel)</label><textarea placeholder="Contexte confidentiel, urgence particulière..." style="min-height:60px;"></textarea></div>
+            <div style="display:flex;gap:10px;margin-top:14px;"><button class="btn-secondary" onclick="goRStep('e',1)">← Retour</button><button class="btn-primary" onclick="goRStep('e',3)">Confirmer l'appel →</button></div>
+          </div>
+        </div>
+        <div id="estep-3-wrap" style="display:none;">
+          <div class="card"><div class="confirm-screen"><div class="confirm-emoji">✅</div><div class="confirm-title">Demande reçue !</div><div class="confirm-sub">Votre besoin a bien été enregistré. Confirmation du créneau sous 1h. Après notre appel : 2-3 profils qualifiés sous 24h.</div><div class="pending-steps"><div class="pstep done">✓ Besoin soumis</div><div class="pstep active">⏳ Appel de qualification à venir</div><div class="pstep">○ Réception de 2-3 profils ciblés</div></div><div class="contact-note">📧 Confirmation envoyée · <span style="color:var(--accent);">contact@bridgeflow.io</span></div></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- MATCH OVERLAY -->
+<div class="match-overlay" id="matchOverlay">
+  <div class="mo-emoji">🎯</div>
+  <div class="mo-title">Match Mutuel !</div>
+  <div class="mo-sub" id="moSub"></div>
+  <div class="mo-detail" id="moDetail"></div>
+  <div class="mo-actions">
+    <button class="btn-calendly" onclick="openCalendly()">📅 Planifier l'entretien</button>
+    <button class="btn-secondary" onclick="closeMatch()">Plus tard</button>
+  </div>
+</div>
+
+<script>
+// ── DATA ──
+const missions=[
+  {id:1,company:'Groupe Leclerc Industries',title:'DAF de transition',role:'Directeur Financier',location:'Paris 8e',tjm:1100,duration:'9 mois',urgency:'Urgent',tags:['Restructuration','M&A','Reporting'],initials:'GL',color:'#7c3aed',
+   summary:'→ Sécuriser le closing d\'une acquisition européenne (cible 60M€)<br>→ Mettre en place le reporting consolidé groupe<br>→ Piloter la relation avec les partenaires financiers et banquiers<br>→ Accompagner la direction dans les arbitrages stratégiques',
+   context:'ETI familiale · 450 salariés · CA 180M€ · Distribution alimentaire'},
+  {id:2,company:'MedTech Solutions',title:'DRH de transition',role:'Directeur RH',location:'Lyon',tjm:950,duration:'6 mois',urgency:'Sous 2 sem.',tags:['Change mgmt','GPEC','SIRH'],initials:'MS',color:'#059669',
+   summary:'→ Structurer la fonction RH (passage de 200 à 600 collaborateurs en 18 mois)<br>→ Déployer un SIRH (Workday) sur l\'ensemble des entités<br>→ Mettre en place une politique GPEC et onboarding<br>→ Accompagner le management dans la transformation culturelle',
+   context:'Startup Series B · 600 salariés · Levée récente 40M€ · MedTech'},
+  {id:3,company:'Renault Supply Chain',title:'Directeur des Opérations',role:'COO',location:'Boulogne',tjm:1300,duration:'12 mois',urgency:'Immédiat',tags:['Supply chain','Lean','International'],initials:'RS',color:'#b45309',
+   summary:'→ Déployer un programme lean manufacturing sur 5 sites européens<br>→ Réduire les niveaux de stocks de 25% en 6 mois<br>→ Sécuriser les approvisionnements critiques post-crise semiconducteurs<br>→ Manager une équipe de 8 responsables de site',
+   context:'Grand groupe · 5 usines (FR, DE, ES, PL) · 2 000 personnes en scope'},
+  {id:4,company:'Digital Ventures SA',title:'DSI de transition',role:'Directeur SI',location:'Remote+Paris',tjm:1050,duration:'6 mois',urgency:'Sous 1 mois',tags:['ERP','SAP','Transfo digitale'],initials:'DV',color:'#be185d',
+   summary:'→ Reprendre le leadership d\'un projet SAP S/4HANA en retard de 4 mois<br>→ Recadrer les équipes internes et l\'intégrateur externe<br>→ Assurer le go-live sur 3 entités du groupe<br>→ Mettre en place la gouvernance SI post-déploiement',
+   context:'Groupe de services · 3 filiales · 300 utilisateurs SAP · Full remote + Paris 2j/mois'},
+  {id:5,company:'Foncière Nexus',title:'DG de transition',role:'Directeur Général',location:'Bordeaux',tjm:1500,duration:'18 mois',urgency:'Urgent',tags:['Turnaround','Immobilier','Direction générale'],initials:'FN',color:'#0369a1',
+   summary:'→ Stabiliser l\'organisation après départ de l\'actionnaire majoritaire<br>→ Restructurer la dette bancaire et négocier avec les créanciers<br>→ Piloter la cession de 3 actifs non stratégiques (VNI ~40M€)<br>→ Préparer la recapitalisation et l\'entrée d\'un nouvel investisseur',
+   context:'Foncière privée · 12 actifs · VNI ~120M€ · Équipe de 15 · Bordeaux'},
+];
+const candidates=[
+  {id:1,name:'Jean-Marc Rousseau',role:'DAF / CFO',location:'Paris',tjm:1050,dispo:'Immédiate',exp:'22 ans',initials:'JR',color:'#7c3aed',bio:'Ex-DAF Danone Europe. Spécialisé restructurations financières et M&A. 4 acquisitions >50M€.'},
+  {id:2,name:'Sophie Lefevre',role:'DRH',location:'Lyon / Paris',tjm:850,dispo:'Sous 2 sem.',exp:'18 ans',initials:'SL',color:'#059669',bio:'Ancienne DRH startups tech (Séries A-C). Expert SIRH Workday, GPEC, transformation culturelle.'},
+  {id:3,name:'Pierre Audibert',role:'COO / Supply Chain',location:'Île-de-France',tjm:1200,dispo:'Immédiate',exp:'25 ans',initials:'PA',color:'#b45309',bio:'Ex-VP Operations Michelin Europe. Expert lean manufacturing, certifié Six Sigma Black Belt.'},
+];
+const entretiens={
+  e1:{type:'qual',typeLbl:'Qualification candidat',typeClass:'dp-type-qual',name:'Jean-Marc Rousseau',role:'DAF / CFO',date:'Lundi 26 mai',heure:'09h00',duree:'30 min',format:'📞 Téléphone',tjm:'1 050 €/j',location:'Paris',notes:'Vérifier : 2 dernières références, disponibilité exacte, TJM négociable. Potentiel positioning sur Leclerc ou Renault.',status:'todo',actions:['📞 Appeler maintenant','✓ Valider le profil','✕ Refuser']},
+  e2:{type:'entreprise',typeLbl:'Qualification entreprise',typeClass:'dp-type-ent',name:'Groupe Leclerc Industries',role:'Marie Dupont — DG',date:'Lundi 26 mai',heure:'14h00',duree:'30 min',format:'💻 Visio Google Meet',tjm:'Budget 1 100 €/j',location:'Paris 8e',notes:'Comprendre le périmètre exact : restructuration pure ou acquisition ? Durée réelle vs. estimée. Budget confirmé ? Décideur en face ?',status:'todo',actions:['💻 Rejoindre la visio','📋 Envoyer des profils','📅 Reporter']},
+  e3:{type:'match',typeLbl:'Entretien de match',typeClass:'dp-type-match',name:'Sophie Lefevre × MedTech Solutions',role:'DRH × Startup Series B',date:'Mardi 27 mai',heure:'10h30',duree:'30 min',format:'📅 Calendly envoyé aux deux parties',tjm:'950 €/j · 6 mois',location:'Lyon',notes:'Match mutuel confirmé. Calendly envoyé automatiquement. Suivre confirmation de présence avant demain matin.',status:'confirmed',actions:['🔗 Voir le Calendly','✉️ Contacter Sophie','✉️ Contacter MedTech']},
+  e4:{type:'qual',typeLbl:'Qualification candidat',typeClass:'dp-type-qual',name:'Pierre Audibert',role:'COO / Supply Chain',date:'Jeudi 29 mai',heure:'09h00',duree:'30 min',format:'💻 Visio Google Meet',tjm:'1 200 €/j',location:'Île-de-France',notes:'Ex-VP Michelin. Vérifier mobilité Europe et appétit missions PME vs. grands groupes. Lire CV avant l\'appel.',status:'todo',actions:['💻 Rejoindre la visio','✓ Valider le profil','✕ Refuser']},
+  e5:{type:'match',typeLbl:'Entretien de match',typeClass:'dp-type-match',name:'Jean-Marc Rousseau × Foncière Nexus',role:'DAF transition × DG Bordeaux',date:'Jeudi 29 mai',heure:'15h30',duree:'30 min',format:'📅 En attente confirmation Calendly',tjm:'1 500 €/j · 18 mois',location:'Bordeaux',notes:'Calendly envoyé à JM Rousseau, en attente côté Foncière. Relancer si pas de réponse jeudi matin.',status:'pending',actions:['📞 Relancer Foncière Nexus','🔗 Voir le match','✕ Annuler']},
+};
+
+let curMission=0,curView='candidat',curStatut='ae',curAE='bnc';
+let candLikes=[],mutualMatches=[];
+
+// ── NAV ──
+const screenTitles={home:'Accueil',match:'Match — Missions',simulator:'Simulateur TJM',admin:'Tableau de bord Admin',register:'Nouvelle inscription'};
+function goScreen(s){
+  document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));
+  document.getElementById('sc-'+s).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
+  const navEl=document.getElementById('nav-'+s);if(navEl)navEl.classList.add('active');
+  document.getElementById('topbarTitle').textContent=screenTitles[s]||s;
+  document.getElementById('viewPill').style.display=s==='match'?'flex':'none';
+  if(s==='match')renderForView();
+  if(s==='simulator')calcSim();
+}
+function setView(v){
+  curView=v;
+  document.getElementById('btnC').classList.toggle('active',v==='candidat');
+  document.getElementById('btnR').classList.toggle('active',v==='recruteur');
+  renderForView();
+}
+function renderForView(){
+  document.getElementById('view-cand').style.display=curView==='candidat'?'':'none';
+  document.getElementById('view-rec').style.display=curView==='recruteur'?'':'none';
+  if(curView==='candidat')renderCards();
+  if(curView==='recruteur')renderRecruiter();
+}
+
+// ── TINDER ──
+function renderCards(){
+  const stack=document.getElementById('tinderStack');
+  const rem=missions.slice(curMission);
+  if(!rem.length){stack.innerHTML=`<div style="display:flex;height:100%;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:var(--text2);text-align:center;"><div style="font-size:44px;">🎯</div><div style="font-size:15px;font-weight:600;">Plus de missions pour l'instant</div></div>`;return;}
+  stack.innerHTML='';
+  rem.slice(0,3).reverse().forEach((m,i)=>{
+    const isTop=i===Math.min(rem.length,3)-1;
+    const card=document.createElement('div');
+    card.className='tinder-card'+(isTop?' top':'');
+    card.innerHTML=`<div class="swipe-indicator swipe-like" id="like-${m.id}">POSTULER</div><div class="swipe-indicator swipe-pass" id="pass-${m.id}">PASSER</div>
+      <div class="tc-header"><div class="tc-avatar" style="background:${m.color}">${m.initials}</div><div style="flex:1;"><div class="tc-company">${m.company}</div><div class="tc-role">${m.title}</div><div class="tc-badge">⚡ ${m.urgency}</div></div></div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:12px 0;">
+      <div class="tc-slabel">Résumé</div><div class="tc-summary">${m.summary}</div>
+      <div class="tc-slabel">Contexte</div><div style="font-size:11px;color:var(--text3);margin-bottom:10px;">${m.context}</div>
+      <div class="tc-slabel">Mots-clés</div><div class="tc-tags">${m.tags.map(t=>`<span class="tc-tag">${t}</span>`).join('')}</div>
+      <div class="tc-info">
+        <div class="tc-info-item"><div class="tc-info-val">${m.tjm.toLocaleString('fr-FR')} €/j</div><div class="tc-info-lab">TJM</div></div>
+        <div class="tc-info-item"><div class="tc-info-val">${m.duration}</div><div class="tc-info-lab">Durée</div></div>
+        <div class="tc-info-item"><div class="tc-info-val">${m.location}</div><div class="tc-info-lab">Lieu</div></div>
+        <div class="tc-info-item"><div class="tc-info-val">${m.role}</div><div class="tc-info-lab">Profil</div></div>
+      </div>`;
+    if(isTop){card.addEventListener('mousedown',dragStart);card.addEventListener('touchstart',dragStart,{passive:true});}
+    stack.appendChild(card);
+  });
+}
+let isDrag=false,sX=0,cX=0;
+function dragStart(e){isDrag=true;sX=e.type==='touchstart'?e.touches[0].clientX:e.clientX;this.classList.add('dragging');document.addEventListener('mousemove',dragMove);document.addEventListener('mouseup',dragEnd);}
+function dragMove(e){if(!isDrag)return;const top=document.querySelector('.tinder-card.top');if(!top)return;cX=(e.clientX||0)-sX;top.style.transform=`translateX(${cX}px) rotate(${cX*0.07}deg)`;const m=missions[curMission];if(m){const l=document.getElementById('like-'+m.id),p=document.getElementById('pass-'+m.id);if(l)l.style.opacity=Math.max(0,cX/70);if(p)p.style.opacity=Math.max(0,-cX/70);}}
+function dragEnd(){if(!isDrag)return;isDrag=false;document.removeEventListener('mousemove',dragMove);document.removeEventListener('mouseup',dragEnd);const top=document.querySelector('.tinder-card.top');if(!top)return;top.classList.remove('dragging');if(cX>90)swipe('right');else if(cX<-90)swipe('left');else{top.style.transform='';const m=missions[curMission];if(m){const l=document.getElementById('like-'+m.id),p=document.getElementById('pass-'+m.id);if(l)l.style.opacity=0;if(p)p.style.opacity=0;}}cX=0;}
+function swipe(dir){
+  const top=document.querySelector('.tinder-card.top');if(!top)return;
+  top.classList.add(dir==='right'?'fly-right':'fly-left');
+  if(dir==='right'){const m=missions[curMission];if(m){candLikes.push(m.id);[1,3].includes(m.id)&&setTimeout(()=>showMatch(m,candidates[0]),500);}}
+  curMission++;setTimeout(renderCards,420);
+  updateCandidatures();
+}
+function showMatch(mission,candidate){
+  document.getElementById('moSub').textContent=`${candidate.name} × ${mission.company}`;
+  document.getElementById('moDetail').innerHTML=`<div class="mo-row"><span style="color:var(--text2);">Mission</span><span style="font-weight:600;">${mission.title}</span></div><div class="mo-row"><span style="color:var(--text2);">Entreprise</span><span>${mission.company}</span></div><div class="mo-row"><span style="color:var(--text2);">TJM</span><span>${mission.tjm.toLocaleString('fr-FR')} €/j · ${mission.duration}</span></div><div class="mo-row"><span style="color:var(--text2);">Lieu</span><span>${mission.location}</span></div>`;
+  mutualMatches.push({mission,candidate});
+  document.getElementById('matchOverlay').classList.add('show');
+}
+function closeMatch(){document.getElementById('matchOverlay').classList.remove('show');}
+function openCalendly(){closeMatch();setTimeout(()=>alert('📅 Ouverture Calendly...\n\nEn production : les deux parties reçoivent automatiquement une invitation email avec les créneaux disponibles.'),200);}
+function toggleCandidatures(){updateCandidatures();}
+function updateCandidatures(){
+  const liked=missions.filter(m=>candLikes.includes(m.id));
+  const isMutual=id=>mutualMatches.some(mm=>mm.mission.id===id);
+  const el=document.getElementById('candidaturesContent');
+  if(!liked.length){el.innerHTML=`<div style="text-align:center;padding:20px;color:var(--text3);"><div style="font-size:32px;">🎯</div><div style="font-size:12px;margin-top:6px;">Swipez pour postuler</div></div>`;return;}
+  el.innerHTML=liked.map(m=>`<div class="candidature-item"><div class="ci-av" style="background:${m.color}">${m.initials}</div><div class="ci-info"><div class="ci-name">${m.title} — ${m.company}</div><div class="ci-detail">${m.location} · ${m.tjm.toLocaleString('fr-FR')} €/j</div></div><span class="status-badge ${isMutual(m.id)?'badge-matched':'badge-pending'}">${isMutual(m.id)?'✓ Match':'En attente'}</span></div>`).join('')
+  +(mutualMatches.length?`<div class="calendly-strip"><div><div class="cs-text">Entretien disponible</div><div class="cs-sub">Match mutuel confirmé</div></div><button class="btn-cal-sm" onclick="openCalendly()">📅 Planifier</button></div>`:'');
+}
+
+// ── RECRUTEUR ──
+function renderRecruiter(){
+  document.getElementById('recruiterCards').innerHTML=candidates.map(c=>`
+    <div class="cand-card" id="cc-${c.id}">
+      <div class="cand-header"><div class="cand-av" style="background:${c.color}">${c.initials}</div><div style="flex:1;"><div class="cand-name">${c.name}</div><div class="cand-role-txt">${c.role} · ${c.location}</div></div><span class="status-badge badge-pending" id="cs-${c.id}">Nouveau</span></div>
+      <div class="cand-bio">${c.bio}</div>
+      <div class="cand-grid">
+        <div class="cand-item"><div class="cand-val">${c.tjm.toLocaleString('fr-FR')} €/j</div><div class="cand-lab">TJM</div></div>
+        <div class="cand-item"><div class="cand-val">${c.dispo}</div><div class="cand-lab">Disponibilité</div></div>
+        <div class="cand-item"><div class="cand-val">${c.exp}</div><div class="cand-lab">Expérience</div></div>
+        <div class="cand-item"><div class="cand-val">2 missions</div><div class="cand-lab">A postulé</div></div>
+      </div>
+      <div class="cand-actions">
+        <button class="btn-approve" onclick="recruiterAction(${c.id},'approve')">✓ Valider le profil</button>
+        <button class="btn-decline" onclick="recruiterAction(${c.id},'decline')">✕ Décliner</button>
+        <button class="btn-cv-btn" onclick="alert('CV de ${c.name}\\n\\nEn production : ouverture du PDF.')">📄 Voir CV</button>
+      </div>
+    </div>`).join('');
+}
+function recruiterAction(id,action){
+  const sb=document.getElementById('cs-'+id),card=document.getElementById('cc-'+id);
+  if(action==='approve'){sb.className='status-badge badge-matched';sb.textContent='✓ Validé';card.style.borderColor='rgba(74,222,128,0.3)';const c=candidates.find(x=>x.id===id);setTimeout(()=>{if(c){showMatch(missions[0],c);renderRecruiterMatchPanel();}},600);}
+  else{sb.className='status-badge badge-declined';sb.textContent='Décliné';card.style.opacity='0.5';}
+}
+function renderRecruiterMatchPanel(){
+  const panel=document.getElementById('recruiterMatches'),list=document.getElementById('recruiterMatchList');
+  panel.style.display='block';
+  list.innerHTML=mutualMatches.map(mm=>`<div class="cand-card" style="border-color:rgba(74,222,128,0.2);"><div class="cand-header"><div class="cand-av" style="background:${mm.candidate.color}">${mm.candidate.initials}</div><div style="flex:1;"><div class="cand-name">${mm.candidate.name} → ${mm.mission.title}</div><div class="cand-role-txt">${mm.mission.company} · ${mm.mission.tjm.toLocaleString('fr-FR')} €/j · ${mm.mission.duration}</div></div><button class="btn-cal-sm" onclick="openCalendly()">📅 Entretien</button></div></div>`).join('');
+}
+
+// ── ADMIN DETAIL ──
+function openDetail(id){
+  const e=entretiens[id];if(!e)return;
+  const statusCls=e.status==='confirmed'?'pstatus-confirmed':e.status==='pending'?'pstatus-pending':'pstatus-todo';
+  const statusLbl=e.status==='confirmed'?'Confirmé':e.status==='pending'?'En attente':'À faire';
+  document.getElementById('detailContent').innerHTML=`
+    <div style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;"><span class="dp-type-badge ${e.typeClass}">${e.typeLbl}</span><span class="pslot-status ${statusCls}">${statusLbl}</span></div>
+    <div class="dp-title">${e.name}</div>
+    <div class="dp-sub">${e.role}</div>
+    <div class="dp-grid">
+      <div class="dp-item"><div class="dp-val">${e.date}</div><div class="dp-lab">Date</div></div>
+      <div class="dp-item"><div class="dp-val">${e.heure} · ${e.duree}</div><div class="dp-lab">Heure</div></div>
+      <div class="dp-item"><div class="dp-val">${e.tjm}</div><div class="dp-lab">TJM</div></div>
+      <div class="dp-item"><div class="dp-val">${e.location}</div><div class="dp-lab">Lieu</div></div>
+    </div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px;">${e.format}</div>
+    <div class="dp-notes-lbl">Mes notes</div>
+    <div class="dp-notes">${e.notes}</div>
+    <div class="dp-actions">${e.actions.map((a,i)=>`<button style="width:100%;padding:10px;border-radius:50px;font-size:13px;font-weight:${i===0?'600':'500'};cursor:pointer;font-family:'DM Sans',sans-serif;background:${i===0?'var(--accent)':'transparent'};color:${i===0?'#0a0a0f':'var(--text)'};border:${i===0?'none':'1px solid var(--border2)'};" onclick="document.getElementById('detailPanel').classList.remove('show')">${a}</button>`).join('')}</div>`;
+  document.getElementById('detailPanel').classList.add('show');
+  document.getElementById('detailPanel').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+// ── SIMULATOR ──
+const aeInfo={bnc:'BNC (Bénéfices Non Commerciaux) : professions libérales non réglementées — consultants, formateurs, managers de transition. Taux cotisations : 22,2%. Plafond CA annuel : 77 700 €.',bic:'BIC (Bénéfices Industriels et Commerciaux) : prestations de services commerciales. Taux cotisations : 22,2%. Plafond CA : 77 700 €/an.',artisan:'Artisan / Commerçant : activités de transformation ou vente. Taux : 21,2% (services artisans). Plafond CA : 77 700 € (services) / 188 700 € (vente).'};
+const aeRates={bnc:0.222,bic:0.222,artisan:0.212};
+function setStatut(s,el){curStatut=s;document.querySelectorAll('.statut-btn').forEach(x=>x.classList.remove('active'));el.classList.add('active');document.getElementById('ae-block').style.display=s==='ae'?'block':'none';calcSim();}
+function setAE(t,el){curAE=t;document.querySelectorAll('.ae-pill').forEach(x=>x.classList.remove('active'));el.classList.add('active');document.getElementById('ae-info').textContent=aeInfo[t];calcSim();}
+function calcSim(){
+  const tjm=+document.getElementById('sTJM').value,jours=+document.getElementById('sJours').value;
+  document.getElementById('sTJM-v').textContent=tjm.toLocaleString('fr-FR')+' €';
+  document.getElementById('sJours-v').textContent=jours+' j';
+  const ca=tjm*jours;let net,details;
+  if(curStatut==='ae'){const r=aeRates[curAE],cot=ca*r;net=ca-cot;details=[{n:`CA mensuel (AE—${curAE.toUpperCase()})`,v:ca,c:''},{n:`Cotisations (${(r*100).toFixed(1)}%)`,v:-cot,c:'neg'},{n:'Net disponible / mois',v:net,c:'pos'},{n:'Plafond annuel',v:curAE==='artisan'?'188 700 €':'77 700 €',raw:true,c:'neg'}];}
+  else if(curStatut==='sasu'){const f=ca*0.03,is=(ca-f)*0.15,div=ca-f-is,pfu=div*0.30;net=div-pfu;details=[{n:'CA mensuel',v:ca,c:''},{n:'Frais & charges (3%)',v:-f,c:'neg'},{n:'IS PME 15%',v:-is,c:'neg'},{n:'Dividendes bruts',v:div,c:''},{n:'PFU / flat tax 30%',v:-pfu,c:'neg'},{n:'Net après flat tax',v:net,c:'pos'}];}
+  else if(curStatut==='eurl'){const cot=ca*0.45,f=ca*0.03,b=ca-cot-f,is=Math.max(0,b*0.15);net=b-is;details=[{n:'CA mensuel',v:ca,c:''},{n:'Charges TNS 45%',v:-cot,c:'neg'},{n:'Frais 3%',v:-f,c:'neg'},{n:'IS PME 15%',v:-is,c:'neg'},{n:'Net après IS',v:net,c:'pos'}];}
+  else{const f=ca*0.09,ch=(ca-f)*0.515;net=(ca-f)*0.485;details=[{n:'CA mensuel',v:ca,c:''},{n:'Frais portage 9%',v:-f,c:'neg'},{n:'Charges sociales 51,5%',v:-ch,c:'neg'},{n:'Salaire net mensuel',v:net,c:'pos'},{n:'+ Protection salarié',v:'Bulletin de paie',raw:true,c:'pos'}];}
+  const taux=Math.round(net/ca*100);
+  document.getElementById('simResults').innerHTML=`<div class="res-card"><div class="res-val">${Math.round(ca).toLocaleString('fr-FR')} €</div><div class="res-lbl">CA / mois</div></div><div class="res-card"><div class="res-val" style="color:var(--accent)">${Math.round(net).toLocaleString('fr-FR')} €</div><div class="res-lbl">Net / mois</div></div><div class="res-card"><div class="res-val">${taux}%</div><div class="res-lbl">Taux net</div></div><div class="res-card"><div class="res-val">${Math.round(net*11).toLocaleString('fr-FR')} €</div><div class="res-lbl">Net / an</div></div>`;
+  document.getElementById('simBreakdown').innerHTML=details.map(d=>`<div class="br-row"><span class="br-n">${d.n}</span><span class="br-v ${d.c==='neg'?'val-neg':d.c==='pos'?'val-pos':''}">${d.raw?d.v:Math.round(d.v).toLocaleString('fr-FR')+' €'}</span></div>`).join('');
+  const aeNet=ca*(1-aeRates[curAE]),sasuNet=(()=>{const f=ca*0.03,i=(ca-f)*0.15,d=ca-f-i;return d-d*0.3;})(),eurlNet=(()=>{const c=ca*0.45,f=ca*0.03,b=ca-c-f;return b-Math.max(0,b*0.15);})(),portNet=(ca*0.91)*0.485;
+  const all=[{l:`AE — ${curAE.toUpperCase()}`,v:aeNet,k:'ae'},{l:'SASU (dividendes)',v:sasuNet,k:'sasu'},{l:'EURL / SARL',v:eurlNet,k:'eurl'},{l:'Salarié porté',v:portNet,k:'portage'}];
+  const mx=Math.max(...all.map(x=>x.v));
+  document.getElementById('simCompare').innerHTML=all.map(s=>`<div class="compare-row"><div class="compare-lbl" style="color:${s.k===curStatut?'var(--accent)':'var(--text2)'};font-weight:${s.k===curStatut?'600':'400'}">${s.l}</div><div class="compare-bar"><div class="compare-fill" style="width:${Math.round(s.v/mx*100)}%;background:${s.k===curStatut?'var(--accent)':'var(--border2)'}"></div></div><div class="compare-val" style="color:${s.k===curStatut?'var(--accent)':'var(--text)'};font-weight:${s.k===curStatut?'600':'400'}">${Math.round(s.v).toLocaleString('fr-FR')} €</div></div>`).join('');
+  const advices={ae:'L\'AE est idéal pour démarrer mais le plafond de 77 700 €/an peut être vite atteint avec un TJM élevé. Au-delà, passez en SASU.',sasu:'La SASU avec dividendes est généralement la plus optimisée fiscalement pour des TJM > 600 €/j. La flat tax à 30% est avantageuse.',eurl:'L\'EURL offre la protection TNS mais les charges sociales à 45% pèsent lourd. Recommandé si vous souhaitez un statut de gérant majoritaire.',portage:'Le portage salarial est idéal si vous débutez ou souhaitez garder le statut de salarié (chômage, retraite). Moins optimisé fiscalement mais plus sécurisant.'};
+  document.getElementById('simAdvice').textContent=advices[curStatut]||'';
+}
+
+// ── REGISTER ──
+function selectRole(role,el){
+  document.querySelectorAll('.choice-card').forEach(c=>c.classList.remove('sel'));el.classList.add('sel');
+  document.querySelectorAll('.reg-form').forEach(f=>f.classList.remove('show'));
+  document.getElementById('rf-'+role).classList.add('show');
+  renderStepsBar(role==='candidat'?'c':'e',1);
+  renderSlots('slots-'+(role==='candidat'?'cand':'ent'));
+}
+function renderStepsBar(role,cur){
+  const steps=role==='c'?[['1','Profil'],['2','Entretien'],['3','Confirmation']]:[['1','Besoin'],['2','Appel'],['3','Confirmation']];
+  const id=role==='c'?'csteps-bar':'esteps-bar';
+  document.getElementById(id).innerHTML=steps.map(([n,l],i)=>{
+    const idx=i+1,cls=idx<cur?'done':idx===cur?'active':'';
+    const lineClass=idx<cur?'done':idx===cur?'active':'';
+    return `<div class="step-wrap"><div class="step-dot ${cls}">${idx<cur?'✓':n}</div><div class="step-lbl" style="color:${idx===cur?'var(--accent)':idx<cur?'var(--green)':'var(--text3)'}">${l}</div></div>${i<2?`<div class="step-line ${lineClass}"></div>`:''}`;
+  }).join('');
+}
+function goRStep(role,step){
+  const prefix=role==='c'?'cstep':'estep';
+  [1,2,3].forEach(s=>{const el=document.getElementById(`${prefix}-${s}-wrap`);if(el)el.style.display=s===step?'':'none';});
+  renderStepsBar(role,step);
+  document.getElementById('sc-register').scrollTop=0;
+}
+function renderSlots(id){
+  const days=['Lun 26/05','Mar 27/05','Mer 28/05','Jeu 29/05','Ven 30/05','Lun 02/06'];
+  const times=['09h00','10h30','14h00','15h30','17h00'];
+  const el=document.getElementById(id);if(!el)return;
+  el.innerHTML=days.map((d,i)=>`<div class="slot-btn" onclick="selSlot(this,'${id}')"><div class="slot-day">${d}</div><div class="slot-time">${times[i%times.length]}</div><div class="slot-dur">30 min</div></div>`).join('');
+}
+function selSlot(el,id){document.querySelectorAll(`#${id} .slot-btn`).forEach(b=>b.classList.remove('sel'));el.classList.add('sel');}
+function setFmt(el){document.querySelectorAll('.fmt-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');}
+function toggleTag(el){el.classList.toggle('active');}
+function handleCV(input){const el=document.getElementById('cvName');if(input.files[0]){el.textContent='✓ '+input.files[0].name;el.style.display='block';}}
+
+// Init
+renderCards();
+calcSim();
+</script>
+</body>
+</html>
