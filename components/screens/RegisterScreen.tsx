@@ -456,13 +456,8 @@ function EntrepriseForm() {
               <label>Type de mission</label>
               <select value={form.missionType} onChange={e => setForm(f => ({ ...f, missionType: e.target.value }))}>
                 <option value="">Sélectionner...</option>
+                <option>Management de transition</option>
                 <option>Remplacement temporaire</option>
-                <option>Restructuration / Turnaround</option>
-                <option>Transformation digitale</option>
-                <option>Croissance / Scale-up</option>
-                <option>Fusion / Acquisition</option>
-                <option>Gestion de crise</option>
-                <option>Projet spécifique</option>
                 <option>Interim management</option>
               </select>
             </div>
