@@ -23,6 +23,7 @@ interface RealInterview {
     role_function: string
     tjm: number | null
     location: string | null
+    phone: string | null
   } | null
   companies: {
     id: string
@@ -51,6 +52,7 @@ interface Interview {
   actions: string[]
   barClass: 'qual' | 'entreprise' | 'match'
   calendlyLink?: string | null
+  candidatePhone?: string | null
 }
 
 interface PipelineItem {
@@ -181,6 +183,7 @@ function convertRealInterview(r: RealInterview): Interview {
     actions,
     barClass: 'match',
     calendlyLink: r.calendly_link,
+    candidatePhone: r.candidates?.phone ?? null,
   }
 }
 
@@ -375,6 +378,20 @@ export default function AdminScreen({ kpis, interviews: realInterviews = [] }: A
                 <div className="dp-item"><div className="dp-val">{selectedInterview.location}</div><div className="dp-lab">Lieu</div></div>
               </div>
               <div style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 12 }}>{selectedInterview.format}</div>
+              {selectedInterview.candidatePhone && (
+                <div style={{ background: 'rgba(200,169,110,0.08)', border: '1px solid rgba(200,169,110,0.2)', borderRadius: 8, padding: '12px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <div style={{ fontSize: 11, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>Telephone candidat</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '0.02em' }}>{selectedInterview.candidatePhone}</div>
+                  </div>
+                  <a
+                    href={`tel:${selectedInterview.candidatePhone}`}
+                    style={{ background: 'var(--accent)', color: '#0a0a0f', padding: '8px 16px', borderRadius: 50, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}
+                  >
+                    Appeler
+                  </a>
+                </div>
+              )}
               {selectedInterview.calendlyLink && (
                 <div style={{ marginBottom: 12 }}>
                   <a
