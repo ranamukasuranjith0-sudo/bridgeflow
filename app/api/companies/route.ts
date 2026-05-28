@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Nom de l'entreprise et email requis" }, { status: 400 })
     }
 
-    const supabase = createSupabaseServerClient()
+    const supabase = await createSupabaseServerClient()
     const { data: { session } } = await supabase.auth.getSession()
 
     const { data: company, error: dbError } = await supabase

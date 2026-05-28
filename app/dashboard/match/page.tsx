@@ -3,7 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 import MatchScreen from '@/components/screens/MatchScreen'
 
 export default async function MatchPage() {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data: { session } } = await supabase.auth.getSession()
 
   if (!session) redirect('/login')

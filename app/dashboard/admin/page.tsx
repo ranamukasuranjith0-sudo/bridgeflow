@@ -4,7 +4,7 @@ import Topbar from '@/components/Topbar'
 import AdminScreen from '@/components/screens/AdminScreen'
 
 export default async function AdminPage() {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data: { session } } = await supabase.auth.getSession()
 
   if (!session) redirect('/login')

@@ -3,7 +3,7 @@ import Topbar from '@/components/Topbar'
 import HomeScreen from '@/components/screens/HomeScreen'
 
 export default async function DashboardPage() {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
 
   const { data: { session } } = await supabase.auth.getSession()
 

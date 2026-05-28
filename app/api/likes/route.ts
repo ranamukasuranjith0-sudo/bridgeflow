@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'target_id et target_type requis' }, { status: 400 })
     }
 
-    const supabase = createSupabaseServerClient()
+    const supabase = await createSupabaseServerClient()
     const { data: { session } } = await supabase.auth.getSession()
 
     const effectiveUserId = user_id ?? session?.user.id
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
 }
 
 async function sendMatchEmails(
-  supabase: ReturnType<typeof import('@/lib/supabase-server').createSupabaseServerClient>,
+  supabase: Awaited<ReturnType<typeof import('@/lib/supabase-server').createSupabaseServerClient>>,
   candidateId: string,
   companyId: string,
   missionId: string
