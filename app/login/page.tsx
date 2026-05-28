@@ -110,6 +110,15 @@ export default function LoginPage() {
               <button className="btn-primary" style={{ width: '100%', marginTop: 8 }} disabled={loading}>
                 {loading ? 'Connexion...' : 'Se connecter →'}
               </button>
+              {/* ← Lien mot de passe oublié */}
+              <div style={{ textAlign: 'center', marginTop: 14 }}>
+                <a
+                  href="/login/forgot-password"
+                  style={{ fontSize: 12, color: 'var(--text3)', textDecoration: 'none' }}
+                >
+                  Mot de passe oublié ?
+                </a>
+              </div>
             </form>
           ) : (
             <form onSubmit={handleSignup}>
@@ -147,7 +156,7 @@ export default function LoginPage() {
                 <label>Votre profil</label>
                 <div className="role-cards">
                   <div
-                    className={`role-card disabled`}
+                    className="role-card disabled"
                     onClick={() => setError('Le rôle Admin est sur invitation uniquement.')}
                   >
                     <div className="role-icon">🔒</div>
