@@ -1,10 +1,9 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import Topbar from '@/components/Topbar'
 import type { Mission, Candidate } from '@/types'
 
-// Static seed missions to use as fallback
 const STATIC_MISSIONS: Mission[] = [
   {
     id: '1', company_id: null,
@@ -53,7 +52,6 @@ const STATIC_MISSIONS: Mission[] = [
   },
 ]
 
-// Static candidates fallback
 const STATIC_CANDIDATES: Candidate[] = [
   {
     id: '1', user_id: null,
@@ -97,11 +95,48 @@ interface MatchScreenProps {
 interface LikedMission {
   mission: Mission
   isMatch: boolean
+  calendlyLink?: string
 }
 
 interface MatchInfo {
   mission: Mission
   candidate: Candidate
+  calendlyLink?: string
+}
+
+// Modal Calendly pour planifier l'entretien
+function CalendlyModal({ calendlyLink, onClose }: { calendlyLink: string; onClose: () => void }) {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
+      zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+    }}>
+      <div style={{
+        background: 'var(--bg)', borderRadius: 16, width: '100%', maxWidth: 700,
+        maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
+          <div style={{ fontWeight: 600, fontSize: 15 }}>📅 Planifier l&apos;entretien</div>
+          <button
+            onClick={onClose}
+            style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text2)' }}
+          >✕</button>
+        </div>
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <iframe
+            src={calendlyLink}
+            width="100%"
+            height="600"
+            frameBorder="0"
+            style={{ border: 'none', display: 'block' }}
+          />
+        </div>
+        <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)', textAlign: 'center' }}>
+          <button className="btn-primary" onClick={onClose}>J&apos;ai réservé mon créneau ✓</button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // Manager / Tinder View
@@ -110,8 +145,9 @@ function ManagerView({ missions, userId }: { missions: Mission[]; userId: string
   const [likedMissions, setLikedMissions] = useState<LikedMission[]>([])
   const [matchInfo, setMatchInfo] = useState<MatchInfo | null>(null)
   const [showMatch, setShowMatch] = useState(false)
+  const [showCalendly, setShowCalendly] = useState(false)
+  const [activeCalendlyLink, setActiveCalendlyLink] = useState('')
 
-  const cardRef = useRef<HTMLDivElement | null>(null)
   const isDragging = useRef(false)
   const startX = useRef(0)
   const currentX = useRef(0)
@@ -133,10 +169,10 @@ function ManagerView({ missions, userId }: { missions: Mission[]; userId: string
           })
           const data = await res.json()
           const isMatch = data.matched === true
-          setLikedMissions(prev => [...prev, { mission, isMatch }])
-          if (isMatch && data.match) {
-            const candidate: Candidate = STATIC_CANDIDATES[0]
-            setMatchInfo({ mission, candidate })
+          const calendlyLink = data.calendly_link ?? ''
+          setLikedMissions(prev => [...prev, { mission, isMatch, calendlyLink }])
+          if (isMatch) {
+            setMatchInfo({ mission, candidate: STATIC_CANDIDATES[0], calendlyLink })
             setTimeout(() => setShowMatch(true), 500)
           }
         } catch {
@@ -199,6 +235,11 @@ function ManagerView({ missions, userId }: { missions: Mission[]; userId: string
     currentX.current = 0
   }
 
+  const openCalendly = (link: string) => {
+    setActiveCalendlyLink(link)
+    setShowCalendly(true)
+  }
+
   const visibleMissions = remaining.slice(0, 3)
 
   return (
@@ -227,9 +268,7 @@ function ManagerView({ missions, userId }: { missions: Mission[]; userId: string
                   <div className="swipe-indicator swipe-like" id={`like-${m.id}`}>POSTULER</div>
                   <div className="swipe-indicator swipe-pass" id={`pass-${m.id}`}>PASSER</div>
                   <div className="tc-header">
-                    <div className="tc-avatar" style={{ background: m.color ?? '#7c3aed' }}>
-                      {m.initials}
-                    </div>
+                    <div className="tc-avatar" style={{ background: m.color ?? '#7c3aed' }}>{m.initials}</div>
                     <div style={{ flex: 1 }}>
                       <div className="tc-company">{m.title}</div>
                       <div className="tc-role">{m.role}</div>
@@ -239,9 +278,7 @@ function ManagerView({ missions, userId }: { missions: Mission[]; userId: string
                   <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '12px 0' }} />
                   <div className="tc-slabel">Résumé</div>
                   <div className="tc-summary">
-                    {m.summary?.split('\n').map((line, idx) => (
-                      <span key={idx}>{line}<br /></span>
-                    ))}
+                    {m.summary?.split('\n').map((line, idx) => <span key={idx}>{line}<br /></span>)}
                   </div>
                   <div className="tc-slabel">Contexte</div>
                   <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 10 }}>{m.context}</div>
@@ -291,11 +328,9 @@ function ManagerView({ missions, userId }: { missions: Mission[]; userId: string
             </div>
           ) : (
             <>
-              {likedMissions.map(({ mission, isMatch }) => (
+              {likedMissions.map(({ mission, isMatch, calendlyLink }) => (
                 <div key={mission.id} className="candidature-item">
-                  <div className="ci-av" style={{ background: mission.color ?? '#7c3aed' }}>
-                    {mission.initials}
-                  </div>
+                  <div className="ci-av" style={{ background: mission.color ?? '#7c3aed' }}>{mission.initials}</div>
                   <div className="ci-info">
                     <div className="ci-name">{mission.title} — {mission.role}</div>
                     <div className="ci-detail">{mission.location} · {(mission.tjm ?? 0).toLocaleString('fr-FR')} €/j</div>
@@ -311,7 +346,15 @@ function ManagerView({ missions, userId }: { missions: Mission[]; userId: string
                     <div className="cs-text">Entretien disponible</div>
                     <div className="cs-sub">Match mutuel confirmé</div>
                   </div>
-                  <button className="btn-cal-sm">📅 Planifier</button>
+                  <button
+                    className="btn-cal-sm"
+                    onClick={() => {
+                      const matched = likedMissions.find(l => l.isMatch && l.calendlyLink)
+                      if (matched?.calendlyLink) openCalendly(matched.calendlyLink)
+                    }}
+                  >
+                    📅 Planifier
+                  </button>
                 </div>
               )}
             </>
@@ -324,7 +367,7 @@ function ManagerView({ missions, userId }: { missions: Mission[]; userId: string
             {[
               'Swipez à droite pour postuler à une mission',
               "L'entreprise examine votre profil de son côté",
-              'Si les deux valident → Calendly automatique',
+              'Si les deux valident → planifiez l\'entretien sur le Calendly de l\'entreprise',
             ].map((text, i) => (
               <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                 <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(200,169,110,0.15)', color: 'var(--accent)', fontSize: 11, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -358,10 +401,26 @@ function ManagerView({ missions, userId }: { missions: Mission[]; userId: string
             </div>
           </div>
           <div className="mo-actions">
-            <button className="btn-calendly">📅 Planifier l&apos;entretien</button>
+            {matchInfo.calendlyLink ? (
+              <button className="btn-calendly" onClick={() => { setShowMatch(false); openCalendly(matchInfo.calendlyLink!) }}>
+                📅 Planifier l&apos;entretien
+              </button>
+            ) : (
+              <div style={{ fontSize: 12, color: 'var(--text3)', padding: '8px 0' }}>
+                L&apos;entreprise n&apos;a pas encore renseigné son lien Calendly.
+              </div>
+            )}
             <button className="btn-secondary" onClick={() => setShowMatch(false)}>Plus tard</button>
           </div>
         </div>
+      )}
+
+      {/* Modal Calendly */}
+      {showCalendly && activeCalendlyLink && (
+        <CalendlyModal
+          calendlyLink={activeCalendlyLink}
+          onClose={() => setShowCalendly(false)}
+        />
       )}
     </div>
   )
@@ -468,6 +527,7 @@ function EntrepriseView({ candidates, userId }: { candidates: Candidate[]; userI
         })
       )}
 
+      {/* Match Overlay côté entreprise */}
       {showMatch && matchInfo && (
         <div className="match-overlay show">
           <div className="mo-emoji">🎯</div>
@@ -488,8 +548,10 @@ function EntrepriseView({ candidates, userId }: { candidates: Candidate[]; userI
             </div>
           </div>
           <div className="mo-actions">
-            <button className="btn-calendly">📅 Planifier l&apos;entretien</button>
-            <button className="btn-secondary" onClick={() => setShowMatch(false)}>Plus tard</button>
+            <div style={{ fontSize: 13, color: 'var(--text2)', background: 'rgba(200,169,110,0.1)', borderRadius: 8, padding: '10px 14px', marginBottom: 8 }}>
+              ✅ Le candidat va recevoir votre lien Calendly pour planifier l&apos;entretien.
+            </div>
+            <button className="btn-secondary" onClick={() => setShowMatch(false)}>Fermer</button>
           </div>
         </div>
       )}
