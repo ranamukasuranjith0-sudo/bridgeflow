@@ -293,20 +293,18 @@ function ManagerForm() {
             </div>
           </div>
           <div className="section-label" style={{ marginBottom: 10 }}>Choisissez un créneau</div>
-          <SlotGrid selected={selectedSlot} onSelect={setSelectedSlot} />
-          <div className="section-label" style={{ marginBottom: 8 }}>Format préféré</div>
-          <div className="format-row">
-            {['📞 Téléphone', '💻 Visio (Google Meet)'].map(f => (
-              <div key={f} className={`fmt-btn${format === f ? ' active' : ''}`} onClick={() => setFormat(f)}>{f}</div>
-            ))}
-          </div>
-          <div className="fgroup">
-            <label>Message optionnel</label>
-            <textarea placeholder="Contrainte particulière, disponibilité alternative..." style={{ minHeight: 60 }} />
+          <div style={{ minHeight: 650, borderRadius: 8, overflow: 'hidden' }}>
+            <iframe
+              src="https://calendly.com/suranjith-ranamuka/appel-de-qualification-bridgeflow"
+              width="100%"
+              height="650"
+              frameBorder="0"
+              style={{ border: 'none' }}
+            />
           </div>
           <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
             <button className="btn-secondary" onClick={() => setStep(1)}>← Retour</button>
-            <button className="btn-primary" onClick={handleSlotConfirm}>Confirmer le créneau →</button>
+            <button className="btn-primary" onClick={() => setStep(3)}>J&apos;ai réservé mon créneau →</button>
           </div>
         </div>
       )}
@@ -521,14 +519,18 @@ function EntrepriseForm() {
             </div>
           </div>
           <div className="section-label" style={{ marginBottom: 10 }}>Choisissez un créneau</div>
-          <SlotGrid selected={selectedSlot} onSelect={setSelectedSlot} />
-          <div className="fgroup">
-            <label>Informations complémentaires (optionnel)</label>
-            <textarea placeholder="Contexte confidentiel, urgence particulière..." style={{ minHeight: 60 }} />
+          <div style={{ minHeight: 650, borderRadius: 8, overflow: 'hidden' }}>
+            <iframe
+              src="https://calendly.com/suranjith-ranamuka/appel-de-qualification-bridgeflow"
+              width="100%"
+              height="650"
+              frameBorder="0"
+              style={{ border: 'none' }}
+            />
           </div>
           <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
             <button className="btn-secondary" onClick={() => setStep(1)}>← Retour</button>
-            <button className="btn-primary" onClick={handleSlotConfirm}>Confirmer l&apos;appel →</button>
+            <button className="btn-primary" onClick={() => setStep(3)}>J&apos;ai réservé mon créneau →</button>
           </div>
         </div>
       )}
