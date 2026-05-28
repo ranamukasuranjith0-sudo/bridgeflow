@@ -34,7 +34,6 @@ export async function POST(request: NextRequest) {
       console.error('Like error:', likeError)
     }
 
-    // ── Match detection ──
     let matched = false
     let matchRecord = null
     let calendlyLink: string | null = null
@@ -54,7 +53,6 @@ export async function POST(request: NextRequest) {
           .single()
 
         if (candidateProfile) {
-          // ← Récupérer calendly_link en même temps
           const { data: company } = await supabase
             .from('companies')
             .select('id, user_id, calendly_link')
@@ -81,7 +79,7 @@ export async function POST(request: NextRequest) {
                   company_id: mission.company_id,
                   mission_id: mission.id,
                   status: 'confirmed',
-                  calendly_sent: false,
+                  calendly_sent: !!calendlyLink,
                 })
                 .select()
                 .single()
@@ -89,6 +87,17 @@ export async function POST(request: NextRequest) {
               matchRecord = newMatch
 
               if (newMatch) {
+                // ← Créer l'entretien dans interviews
+                await supabase.from('interviews').insert({
+                  candidate_id: candidateProfile.id,
+                  company_id: mission.company_id,
+                  match_id: newMatch.id,
+                  type: 'match',
+                  status: 'pending',
+                  calendly_link: calendlyLink,
+                  notes: '',
+                })
+
                 await sendMatchEmails(supabase, candidateProfile.id, company.id, mission.id, calendlyLink)
               }
             }
@@ -96,7 +105,6 @@ export async function POST(request: NextRequest) {
         }
       }
     } else if (target_type === 'candidate') {
-      // ← Récupérer calendly_link de l'entreprise
       const { data: companyProfile } = await supabase
         .from('companies')
         .select('id, calendly_link')
@@ -140,7 +148,7 @@ export async function POST(request: NextRequest) {
                   company_id: companyProfile.id,
                   mission_id: candidateLike.target_id,
                   status: 'confirmed',
-                  calendly_sent: false,
+                  calendly_sent: !!calendlyLink,
                 })
                 .select()
                 .single()
@@ -148,6 +156,17 @@ export async function POST(request: NextRequest) {
               matchRecord = newMatch
 
               if (newMatch) {
+                // ← Créer l'entretien dans interviews
+                await supabase.from('interviews').insert({
+                  candidate_id: candidate.id,
+                  company_id: companyProfile.id,
+                  match_id: newMatch.id,
+                  type: 'match',
+                  status: 'pending',
+                  calendly_link: calendlyLink,
+                  notes: '',
+                })
+
                 await sendMatchEmails(supabase, candidate.id, companyProfile.id, candidateLike.target_id, calendlyLink)
               }
             }
@@ -156,7 +175,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ← Retourner calendly_link dans la réponse
     return NextResponse.json({ like, matched, match: matchRecord, calendly_link: calendlyLink }, { status: 201 })
   } catch (error) {
     console.error('API error:', error)
