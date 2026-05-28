@@ -340,7 +340,7 @@ function EntrepriseForm() {
 
   const [form, setForm] = useState({
     companyName: '', contactName: '', email: '', phone: '',
-    size: '', roleNeeded: '', duration: '9 mois', budgetTjm: '',
+    size: '', roleNeeded: '', missionType: '', duration: '9 mois', budgetTjm: '',
     location: '', startDate: 'Immédiat', context: '',
   })
 
@@ -362,6 +362,7 @@ function EntrepriseForm() {
           phone: form.phone,
           size: form.size,
           role_needed: form.roleNeeded,
+          mission_type: form.missionType,
           duration: form.duration,
           budget_tjm: form.budgetTjm ? parseInt(form.budgetTjm) : null,
           location: form.location,
@@ -449,6 +450,20 @@ function EntrepriseForm() {
                   <option>DSI / Directeur SI</option>
                   <option>CTO / Directeur Technique</option>
                 </optgroup>
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Type de mission</label>
+              <select value={form.missionType} onChange={e => setForm(f => ({ ...f, missionType: e.target.value }))}>
+                <option value="">Sélectionner...</option>
+                <option>Remplacement temporaire</option>
+                <option>Restructuration / Turnaround</option>
+                <option>Transformation digitale</option>
+                <option>Croissance / Scale-up</option>
+                <option>Fusion / Acquisition</option>
+                <option>Gestion de crise</option>
+                <option>Projet spécifique</option>
+                <option>Interim management</option>
               </select>
             </div>
             <div className="form-group">
