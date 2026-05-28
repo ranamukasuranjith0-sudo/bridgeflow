@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
-    // Insert the like (ignore conflict = already liked)
+    // Insert the like
     const { data: like, error: likeError } = await supabase
       .from('likes')
       .upsert({
@@ -32,15 +32,14 @@ export async function POST(request: NextRequest) {
 
     if (likeError) {
       console.error('Like error:', likeError)
-      // If it's a conflict error, proceed with match check anyway
     }
 
     // ── Match detection ──
     let matched = false
     let matchRecord = null
+    let calendlyLink: string | null = null
 
     if (target_type === 'mission') {
-      // Manager liked a mission → check if the company owning that mission already liked this manager
       const { data: mission } = await supabase
         .from('missions')
         .select('id, company_id')
@@ -48,7 +47,6 @@ export async function POST(request: NextRequest) {
         .single()
 
       if (mission?.company_id) {
-        // Get the candidate profile for the current user
         const { data: candidateProfile } = await supabase
           .from('candidates')
           .select('id')
@@ -56,10 +54,10 @@ export async function POST(request: NextRequest) {
           .single()
 
         if (candidateProfile) {
-          // Get the company's user_id to check their likes
+          // ← Récupérer calendly_link en même temps
           const { data: company } = await supabase
             .from('companies')
-            .select('id, user_id')
+            .select('id, user_id, calendly_link')
             .eq('id', mission.company_id)
             .single()
 
@@ -74,7 +72,8 @@ export async function POST(request: NextRequest) {
 
             if (companyLike) {
               matched = true
-              // Create match record
+              calendlyLink = company.calendly_link ?? null
+
               const { data: newMatch } = await supabase
                 .from('matches')
                 .upsert({
@@ -89,24 +88,24 @@ export async function POST(request: NextRequest) {
 
               matchRecord = newMatch
 
-              // Send match notification emails
               if (newMatch) {
-                await sendMatchEmails(supabase, candidateProfile.id, company.id, mission.id)
+                await sendMatchEmails(supabase, candidateProfile.id, company.id, mission.id, calendlyLink)
               }
             }
           }
         }
       }
     } else if (target_type === 'candidate') {
-      // Company liked a candidate → check if that candidate liked any of this company's missions
+      // ← Récupérer calendly_link de l'entreprise
       const { data: companyProfile } = await supabase
         .from('companies')
-        .select('id')
+        .select('id, calendly_link')
         .eq('user_id', effectiveUserId)
         .single()
 
       if (companyProfile) {
-        // Get the missions for this company
+        calendlyLink = companyProfile.calendly_link ?? null
+
         const { data: companyMissions } = await supabase
           .from('missions')
           .select('id')
@@ -115,7 +114,6 @@ export async function POST(request: NextRequest) {
         const missionIds = (companyMissions ?? []).map(m => m.id)
 
         if (missionIds.length > 0) {
-          // Get the candidate's user_id
           const { data: candidate } = await supabase
             .from('candidates')
             .select('id, user_id')
@@ -123,7 +121,6 @@ export async function POST(request: NextRequest) {
             .single()
 
           if (candidate?.user_id) {
-            // Check if candidate liked any of company's missions
             const { data: candidateLike } = await supabase
               .from('likes')
               .select('id, target_id')
@@ -135,6 +132,7 @@ export async function POST(request: NextRequest) {
 
             if (candidateLike) {
               matched = true
+
               const { data: newMatch } = await supabase
                 .from('matches')
                 .upsert({
@@ -150,7 +148,7 @@ export async function POST(request: NextRequest) {
               matchRecord = newMatch
 
               if (newMatch) {
-                await sendMatchEmails(supabase, candidate.id, companyProfile.id, candidateLike.target_id)
+                await sendMatchEmails(supabase, candidate.id, companyProfile.id, candidateLike.target_id, calendlyLink)
               }
             }
           }
@@ -158,7 +156,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ like, matched, match: matchRecord }, { status: 201 })
+    // ← Retourner calendly_link dans la réponse
+    return NextResponse.json({ like, matched, match: matchRecord, calendly_link: calendlyLink }, { status: 201 })
   } catch (error) {
     console.error('API error:', error)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
@@ -169,7 +168,8 @@ async function sendMatchEmails(
   supabase: Awaited<ReturnType<typeof import('@/lib/supabase-server').createSupabaseServerClient>>,
   candidateId: string,
   companyId: string,
-  missionId: string
+  missionId: string,
+  calendlyLink: string | null
 ) {
   try {
     const [{ data: candidate }, { data: company }, { data: mission }] = await Promise.all([
@@ -185,7 +185,8 @@ async function sendMatchEmails(
         mission.title,
         mission.tjm,
         mission.duration,
-        mission.location
+        mission.location,
+        calendlyLink
       )
 
       await Promise.all([
@@ -214,8 +215,19 @@ function matchNotificationEmail(
   missionTitle: string,
   tjm: number | null,
   duration: string | null,
-  location: string | null
+  location: string | null,
+  calendlyLink: string | null
 ): string {
+  const calendlyButton = calendlyLink
+    ? `<div style="text-align:center;margin:0 0 24px;">
+        <a href="${calendlyLink}" style="display:inline-block;background:linear-gradient(135deg,#60a5fa,#a78bfa);color:white;padding:14px 32px;border-radius:50px;font-size:14px;font-weight:600;text-decoration:none;">
+          📅 Planifier l'entretien via Calendly
+        </a>
+      </div>`
+    : `<p style="color:#5a5870;font-size:12px;text-align:center;margin:0 0 24px;">
+        Notre équipe BridgeFlow vous contactera pour planifier l'entretien.
+      </p>`
+
   return `
 <!DOCTYPE html>
 <html lang="fr">
@@ -241,13 +253,9 @@ function matchNotificationEmail(
         ${tjm ? `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.07);font-size:13px;"><span style="color:#5a5870;">TJM</span><strong>${tjm.toLocaleString('fr-FR')} €/j${duration ? ` · ${duration}` : ''}</strong></div>` : ''}
         ${location ? `<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px;"><span style="color:#5a5870;">Lieu</span><strong>${location}</strong></div>` : ''}
       </div>
-      <div style="text-align:center;margin:0 0 24px;">
-        <a href="#" style="display:inline-block;background:linear-gradient(135deg,#60a5fa,#a78bfa);color:white;padding:14px 32px;border-radius:50px;font-size:14px;font-weight:600;text-decoration:none;">
-          📅 Planifier l'entretien via Calendly
-        </a>
-      </div>
+      ${calendlyButton}
       <p style="color:#5a5870;font-size:12px;text-align:center;margin:0;">
-        Notre équipe BridgeFlow coordonne la prise de contact. Vous recevrez le lien Calendly séparément.
+        BridgeFlow — La plateforme de management de transition
       </p>
     </div>
   </div>
