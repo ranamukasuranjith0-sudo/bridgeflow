@@ -6,7 +6,6 @@ import AdminScreen from '@/components/screens/AdminScreen'
 export default async function AdminPage() {
   const supabase = await createSupabaseServerClient()
   const { data: { session } } = await supabase.auth.getSession()
-
   if (!session) redirect('/login')
 
   const { data: profile } = await supabase
@@ -19,7 +18,7 @@ export default async function AdminPage() {
     redirect('/dashboard')
   }
 
-  // Fetch real KPIs
+  // Fetch KPIs
   const [
     { count: candidatesCount },
     { count: missionsCount },
@@ -29,22 +28,52 @@ export default async function AdminPage() {
     supabase.from('candidates').select('*', { count: 'exact', head: true }).eq('status', 'validated'),
     supabase.from('missions').select('*', { count: 'exact', head: true }).eq('status', 'active'),
     supabase.from('matches').select('*', { count: 'exact', head: true }).in('status', ['pending', 'confirmed']),
-    supabase.from('interviews').select('*', { count: 'exact', head: true }).eq('status', 'todo'),
+    supabase.from('interviews').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
   ])
 
   const kpis = {
-    activeCandidates: candidatesCount ?? 12,
-    openMissions: missionsCount ?? 7,
-    activeMatches: matchesCount ?? 3,
-    plannedInterviews: interviewsCount ?? 2,
+    activeCandidates: candidatesCount ?? 0,
+    openMissions: missionsCount ?? 0,
+    activeMatches: matchesCount ?? 0,
+    plannedInterviews: interviewsCount ?? 0,
   }
+
+  // Fetch vrais entretiens avec infos candidat + entreprise
+  const { data: interviews } = await supabase
+    .from('interviews')
+    .select(`
+      id,
+      type,
+      status,
+      calendly_link,
+      scheduled_at,
+      notes,
+      created_at,
+      candidates (
+        id,
+        name,
+        role_function,
+        tjm,
+        location
+      ),
+      companies (
+        id,
+        company_name,
+        contact_name,
+        location,
+        budget_tjm
+      )
+    `)
+    .order('created_at', { ascending: false })
+    .limit(20)
 
   return (
     <>
       <Topbar title="Tableau de bord Admin" />
       <div className="content">
-        <AdminScreen kpis={kpis} />
+        <AdminScreen kpis={kpis} interviews={interviews ?? []} />
       </div>
     </>
   )
 }
+
