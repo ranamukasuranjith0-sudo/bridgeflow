@@ -7,15 +7,6 @@ type RegistrationType = 'candidat' | 'entreprise' | null
 const SECTORS = ['Industrie', 'Finance', 'Tech / IT', 'Santé', 'Retail', 'Énergie', 'Immobilier', 'Services', 'Agroalimentaire', 'Conseil']
 const SKILLS = ['Restructuration', 'Turnaround', 'M&A', 'Transformation digitale', 'Levée de fonds', 'Change management', 'ERP / SAP', 'International']
 
-const SLOTS = [
-  { day: 'Lun 26/05', time: '09h00' },
-  { day: 'Mar 27/05', time: '10h30' },
-  { day: 'Mer 28/05', time: '14h00' },
-  { day: 'Jeu 29/05', time: '15h30' },
-  { day: 'Ven 30/05', time: '17h00' },
-  { day: 'Lun 02/06', time: '09h00' },
-]
-
 function StepsBar({ steps, current }: { steps: string[]; current: number }) {
   return (
     <div className="steps-bar">
@@ -55,35 +46,12 @@ function TagSelector({ tags, selected, onToggle }: { tags: string[]; selected: s
   )
 }
 
-function SlotGrid({ selected, onSelect }: { selected: string; onSelect: (slot: string) => void }) {
-  return (
-    <div className="slots-grid">
-      {SLOTS.map(s => {
-        const key = `${s.day} ${s.time}`
-        return (
-          <div
-            key={key}
-            className={`slot-btn${selected === key ? ' sel' : ''}`}
-            onClick={() => onSelect(key)}
-          >
-            <div className="slot-day">{s.day}</div>
-            <div className="slot-time">{s.time}</div>
-            <div className="slot-dur">30 min</div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
 // Manager Form
 function ManagerForm() {
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [selectedSectors, setSelectedSectors] = useState<string[]>([])
-  const [selectedSlot, setSelectedSlot] = useState('')
-  const [format, setFormat] = useState('📞 Téléphone')
   const [cvName, setCvName] = useState('')
 
   const [form, setForm] = useState({
@@ -128,11 +96,6 @@ function ManagerForm() {
       setError('Erreur réseau')
     }
     setLoading(false)
-  }
-
-  const handleSlotConfirm = () => {
-    if (!selectedSlot) { setError('Veuillez choisir un créneau'); return }
-    setStep(3)
   }
 
   return (
@@ -284,7 +247,6 @@ function ManagerForm() {
       {step === 2 && (
         <div className="card">
           <div className="card-title"><span className="dot"></span>Étape 2 — Entretien de qualification</div>
-          {error && <div className="login-error">{error}</div>}
           <div className="human-badge">
             <div className="hb-icon">🤝</div>
             <div>
@@ -334,12 +296,11 @@ function EntrepriseForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [selectedSkills, setSelectedSkills] = useState<string[]>([])
-  const [selectedSlot, setSelectedSlot] = useState('')
 
   const [form, setForm] = useState({
     companyName: '', contactName: '', email: '', phone: '',
     size: '', roleNeeded: '', missionType: '', duration: '9 mois', budgetTjm: '',
-    location: '', startDate: 'Immédiat', context: '',
+    location: '', startDate: 'Immédiat', context: '', calendlyLink: '',
   })
 
   const toggleSkill = (s: string) => {
@@ -367,6 +328,7 @@ function EntrepriseForm() {
           start_date: form.startDate,
           context: form.context,
           required_skills: selectedSkills,
+          calendly_link: form.calendlyLink,
         }),
       })
       if (!res.ok) {
@@ -380,11 +342,6 @@ function EntrepriseForm() {
       setError('Erreur réseau')
     }
     setLoading(false)
-  }
-
-  const handleSlotConfirm = () => {
-    if (!selectedSlot) { setError('Veuillez choisir un créneau'); return }
-    setStep(3)
   }
 
   return (
@@ -498,10 +455,22 @@ function EntrepriseForm() {
               <label>Compétences requises</label>
               <TagSelector tags={SKILLS} selected={selectedSkills} onToggle={toggleSkill} />
             </div>
+            <div className="form-group full">
+              <label>Votre lien Calendly <span style={{ color: 'var(--text3)', fontWeight: 400 }}>(pour les entretiens avec les candidats)</span></label>
+              <input
+                type="url"
+                placeholder="https://calendly.com/votre-nom/entretien"
+                value={form.calendlyLink}
+                onChange={e => setForm(f => ({ ...f, calendlyLink: e.target.value }))}
+              />
+              <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>
+                Créez votre lien sur <a href="https://calendly.com" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>calendly.com</a> — les candidats matchés pourront réserver directement un créneau.
+              </div>
+            </div>
           </div>
           <div style={{ marginTop: 14 }}>
             <button className="btn-primary" onClick={handleSubmit} disabled={loading}>
-              {loading ? 'Envoi...' : 'Continuer — Choisir un créneau d\'appel →'}
+              {loading ? 'Envoi...' : 'Continuer — Appel de qualification →'}
             </button>
           </div>
         </div>
