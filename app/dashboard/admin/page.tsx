@@ -38,15 +38,16 @@ export default async function AdminPage() {
     plannedInterviews: interviewsCount ?? 0,
   }
 
-  // Fetch entretiens sans jointure pour éviter les erreurs de type
+  // Fetch entretiens
   const { data: interviewsRaw } = await supabase
     .from('interviews')
     .select('id, type, status, calendly_link, scheduled_at, notes, created_at, candidate_id, company_id, match_id')
     .order('created_at', { ascending: false })
     .limit(20)
 
-  const candidateIds = (interviewsRaw ?? []).map((i: any) => i.candidate_id).filter(Boolean)
-  const companyIds = (interviewsRaw ?? []).map((i: any) => i.company_id).filter(Boolean)
+  const rows = (interviewsRaw ?? []) as any[]
+  const candidateIds = rows.map(i => i.candidate_id).filter(Boolean)
+  const companyIds = rows.map(i => i.company_id).filter(Boolean)
 
   const [{ data: candidatesData }, { data: companiesData }] = await Promise.all([
     candidateIds.length > 0
@@ -57,10 +58,16 @@ export default async function AdminPage() {
       : Promise.resolve({ data: [] as any[] }),
   ])
 
-  const interviews = (interviewsRaw ?? []).map((i: any) => ({
-    ...i,
-    candidates: (candidatesData ?? []).find((c: any) => c.id === i.candidate_id) ?? null,
-    companies: (companiesData ?? []).find((c: any) => c.id === i.company_id) ?? null,
+  const interviews = rows.map(i => ({
+    id: i.id as string,
+    type: i.type as string,
+    status: i.status as string,
+    calendly_link: i.calendly_link as string | null,
+    scheduled_at: i.scheduled_at as string | null,
+    notes: i.notes as string | null,
+    created_at: i.created_at as string,
+    candidates: ((candidatesData ?? []) as any[]).find(c => c.id === i.candidate_id) ?? null,
+    companies: ((companiesData ?? []) as any[]).find(c => c.id === i.company_id) ?? null,
   }))
 
   return (
