@@ -18,7 +18,6 @@ export default async function AdminPage() {
     redirect('/dashboard')
   }
 
-  // Fetch KPIs
   const [
     { count: candidatesCount },
     { count: missionsCount },
@@ -38,7 +37,6 @@ export default async function AdminPage() {
     plannedInterviews: interviewsCount ?? 0,
   }
 
-  // Fetch entretiens
   const { data: interviewsRaw } = await supabase
     .from('interviews')
     .select('id, type, status, calendly_link, scheduled_at, notes, created_at, candidate_id, company_id, match_id')
@@ -51,10 +49,10 @@ export default async function AdminPage() {
 
   const [{ data: candidatesData }, { data: companiesData }] = await Promise.all([
     candidateIds.length > 0
-      ? supabase.from('candidates').select('id, name, role_function, tjm, location').in('id', candidateIds)
+      ? supabase.from('candidates').select('id, name, role_function, tjm, location, phone').in('id', candidateIds)
       : Promise.resolve({ data: [] as any[] }),
     companyIds.length > 0
-      ? supabase.from('companies').select('id, company_name, contact_name, location, budget_tjm').in('id', companyIds)
+      ? supabase.from('companies').select('id, company_name, contact_name, location, budget_tjm, phone').in('id', companyIds)
       : Promise.resolve({ data: [] as any[] }),
   ])
 
