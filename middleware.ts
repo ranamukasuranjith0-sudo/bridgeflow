@@ -25,11 +25,11 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user } } = await supabase.auth.getUser()
 
   // Protect all /dashboard/* routes
   if (request.nextUrl.pathname.startsWith('/dashboard')) {
-    if (!session) {
+    if (!user) {
       const loginUrl = new URL('/login', request.url)
       return NextResponse.redirect(loginUrl)
     }
@@ -39,7 +39,7 @@ export async function middleware(request: NextRequest) {
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
-        .eq('id', session.user.id)
+        .eq('id', user.id)
         .single()
 
       if (!profile || profile.role !== 'admin') {
@@ -50,7 +50,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Redirect logged-in users away from login page
-  if (request.nextUrl.pathname === '/login' && session) {
+  if (request.nextUrl.pathname === '/login' && user) {
     const dashboardUrl = new URL('/dashboard', request.url)
     return NextResponse.redirect(dashboardUrl)
   }
@@ -59,5 +59,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/login'],
+  matcher: ['/dashboard', '/dashboard/:path*', '/login'],
 }

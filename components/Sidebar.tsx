@@ -67,8 +67,7 @@ export default function Sidebar({ profile }: SidebarProps) {
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
-    router.push('/login')
-    router.refresh()
+    window.location.replace('/login')
   }
 
   const isActive = (href: string) => {
@@ -136,13 +135,13 @@ export default function Sidebar({ profile }: SidebarProps) {
         </Link>
       </nav>
       <div className="sidebar-footer">
-        <div className="user-card">
+        <Link href="/dashboard/profile" className="user-card" style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}>
           <div className="user-av">{initials}</div>
           <div>
             <div className="user-name">{profile?.name || profile?.email || 'Utilisateur'}</div>
             <div className="user-role">{getRoleLabel(role)}</div>
           </div>
-        </div>
+        </Link>
         <button className="logout-btn" onClick={handleLogout}>
           Déconnexion
         </button>
