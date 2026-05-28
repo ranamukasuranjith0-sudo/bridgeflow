@@ -7,6 +7,8 @@ type RegistrationType = 'candidat' | 'entreprise' | null
 const SECTORS = ['Industrie', 'Finance', 'Tech / IT', 'Santé', 'Retail', 'Énergie', 'Immobilier', 'Services', 'Agroalimentaire', 'Conseil']
 const SKILLS = ['Restructuration', 'Turnaround', 'M&A', 'Transformation digitale', 'Levée de fonds', 'Change management', 'ERP / SAP', 'International']
 
+const REQ = <span style={{ color: '#e74c3c', marginLeft: 2 }}>*</span>
+
 function StepsBar({ steps, current }: { steps: string[]; current: number }) {
   return (
     <div className="steps-bar">
@@ -65,6 +67,13 @@ function ManagerForm() {
   }
 
   const handleSubmit = async () => {
+    // Validation champs obligatoires
+    if (!form.firstName.trim()) { setError('Le prénom est obligatoire.'); return }
+    if (!form.lastName.trim()) { setError('Le nom est obligatoire.'); return }
+    if (!form.email.trim()) { setError("L'email est obligatoire."); return }
+    if (!form.phone.trim()) { setError('Le téléphone est obligatoire.'); return }
+    if (!form.availability) { setError('La disponibilité est obligatoire.'); return }
+
     setLoading(true)
     setError('')
     try {
@@ -105,22 +114,25 @@ function ManagerForm() {
       {step === 1 && (
         <div className="card">
           <div className="card-title"><span className="dot"></span>Étape 1 — Profil manager</div>
+          <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 12 }}>
+            Les champs marqués <span style={{ color: '#e74c3c' }}>*</span> sont obligatoires
+          </div>
           {error && <div className="login-error">{error}</div>}
           <div className="form-grid-2">
             <div className="form-group">
-              <label>Prénom</label>
+              <label>Prénom {REQ}</label>
               <input type="text" placeholder="Jean" value={form.firstName} onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))} />
             </div>
             <div className="form-group">
-              <label>Nom</label>
+              <label>Nom {REQ}</label>
               <input type="text" placeholder="Dupont" value={form.lastName} onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))} />
             </div>
             <div className="form-group">
-              <label>Email</label>
+              <label>Email {REQ}</label>
               <input type="email" placeholder="jean@email.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
             </div>
             <div className="form-group">
-              <label>Téléphone</label>
+              <label>Téléphone {REQ}</label>
               <input type="tel" placeholder="+33 6 12 34 56 78" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
             </div>
             <div className="form-group">
@@ -176,7 +188,7 @@ function ManagerForm() {
               <input type="text" placeholder="Paris, Île-de-France" value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} />
             </div>
             <div className="form-group">
-              <label>Disponibilité</label>
+              <label>Disponibilité {REQ}</label>
               <select value={form.availability} onChange={e => setForm(f => ({ ...f, availability: e.target.value }))}>
                 <option value="">Sélectionner...</option>
                 <option>Immédiate (72h)</option>
@@ -308,6 +320,12 @@ function EntrepriseForm() {
   }
 
   const handleSubmit = async () => {
+    // Validation champs obligatoires
+    if (!form.companyName.trim()) { setError("Le nom de l'entreprise est obligatoire."); return }
+    if (!form.contactName.trim()) { setError('Votre nom et fonction sont obligatoires.'); return }
+    if (!form.email.trim()) { setError("L'email est obligatoire."); return }
+    if (!form.phone.trim()) { setError('Le téléphone est obligatoire.'); return }
+
     setLoading(true)
     setError('')
     try {
@@ -351,22 +369,25 @@ function EntrepriseForm() {
       {step === 1 && (
         <div className="card">
           <div className="card-title"><span className="dot"></span>Étape 1 — Votre besoin</div>
+          <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 12 }}>
+            Les champs marqués <span style={{ color: '#e74c3c' }}>*</span> sont obligatoires
+          </div>
           {error && <div className="login-error">{error}</div>}
           <div className="form-grid-2">
             <div className="form-group">
-              <label>Nom de l&apos;entreprise</label>
+              <label>Nom de l&apos;entreprise {REQ}</label>
               <input type="text" placeholder="Acme Corp" value={form.companyName} onChange={e => setForm(f => ({ ...f, companyName: e.target.value }))} />
             </div>
             <div className="form-group">
-              <label>Votre nom et fonction</label>
+              <label>Votre nom et fonction {REQ}</label>
               <input type="text" placeholder="Marie Martin, DG" value={form.contactName} onChange={e => setForm(f => ({ ...f, contactName: e.target.value }))} />
             </div>
             <div className="form-group">
-              <label>Email</label>
+              <label>Email {REQ}</label>
               <input type="email" placeholder="contact@acme.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
             </div>
             <div className="form-group">
-              <label>Téléphone direct</label>
+              <label>Téléphone direct {REQ}</label>
               <input type="tel" placeholder="+33 1 23 45 67 89" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
             </div>
             <div className="form-group">
