@@ -19,6 +19,7 @@ interface PendingProfile {
   tjm?: number | null
   location?: string | null
   phone?: string | null
+  cv_url?: string | null
   created_at: string
   type: 'candidate' | 'company'
 }
@@ -357,7 +358,7 @@ export default function AdminScreen({
       <div className="admin-layout">
         <div className="admin-left">
 
-          {/* Section profils en attente */}
+          {/* Profils en attente de validation */}
           {allPending.length > 0 && (
             <div className="card" style={{ marginBottom: 16 }}>
               <div className="card-title">
@@ -386,7 +387,28 @@ export default function AdminScreen({
                       {profile.email} · {profile.type === 'candidate' ? 'Candidat' : 'Entreprise'}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                  <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
+                    {/* Bouton CV — uniquement pour les candidats qui ont uploadé */}
+                    {profile.type === 'candidate' && profile.cv_url && (
+                      <a
+                        href={profile.cv_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          background: 'rgba(200,169,110,0.1)',
+                          color: 'var(--accent)',
+                          border: '1px solid rgba(200,169,110,0.3)',
+                          borderRadius: 50,
+                          padding: '5px 12px',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          textDecoration: 'none',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        📄 CV
+                      </a>
+                    )}
                     <button
                       onClick={() => handleValidate(profile.id, profile.type, 'validate')}
                       style={{ background: 'rgba(74,222,128,0.15)', color: 'var(--green)', border: '1px solid rgba(74,222,128,0.3)', borderRadius: 50, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
