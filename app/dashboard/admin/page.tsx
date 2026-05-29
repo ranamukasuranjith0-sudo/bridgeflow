@@ -78,11 +78,23 @@ export default async function AdminPage() {
 
   const googleConnected = !!googleSetting?.value
 
+  // Fetcher les profils en attente de validation
+  const [{ data: pendingCandidates }, { data: pendingCompanies }] = await Promise.all([
+    supabase.from('candidates').select('id, name, email, role_function, tjm, location, phone, created_at').eq('status', 'pending'),
+    supabase.from('companies').select('id, company_name, contact_name, email, location, budget_tjm, created_at').eq('status', 'pending'),
+  ])
+
   return (
     <>
       <Topbar title="Tableau de bord Admin" />
       <div className="content">
-        <AdminScreen kpis={kpis} interviews={interviews} googleConnected={googleConnected} />
+        <AdminScreen
+          kpis={kpis}
+          interviews={interviews}
+          googleConnected={googleConnected}
+          pendingCandidates={(pendingCandidates ?? []) as any[]}
+          pendingCompanies={(pendingCompanies ?? []) as any[]}
+        />
       </div>
     </>
   )
