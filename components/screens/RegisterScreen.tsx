@@ -9,6 +9,101 @@ const SKILLS = ['Restructuration', 'Turnaround', 'M&A', 'Transformation digitale
 
 const REQ = <span style={{ color: '#e74c3c', marginLeft: 2 }}>*</span>
 
+const FUNCTIONS_OPTIONS = [
+  { group: 'Finance & Gestion', options: [
+    'CFO / Directeur Financier',
+    'RAF / Responsable Administratif et Financier',
+    'Directeur Contrôle de Gestion',
+    'Directeur Comptable',
+    'FP&A Manager',
+    'Trésorier / Cash Management',
+    'Responsable Comptable',
+    'Directeur de la Trésorerie',
+  ]},
+  { group: 'Ressources Humaines', options: [
+    'DRH / Directeur RH',
+    'HRBP Senior',
+    'Responsable Paie & Administration RH',
+    'Directeur Talent & Acquisition',
+    'Responsable Formation & Développement',
+    'Responsable Relations Sociales',
+    'HR Manager',
+    'Directeur Compensation & Benefits',
+  ]},
+  { group: 'Supply Chain & Industrie', options: [
+    'Directeur Supply Chain',
+    'Directeur des Achats',
+    'Directeur Logistique',
+    'Directeur de Production',
+    'Responsable Planning & Approvisionnement',
+    'Directeur Industriel',
+    'Responsable Lean / Excellence Opérationnelle',
+    'Directeur Qualité',
+  ]},
+  { group: "Systèmes d'Information", options: [
+    'DSI / Directeur SI',
+    'CTO / Directeur Technique',
+    'Directeur Digital & Transformation',
+    'Directeur de Projet IT / PMO',
+    'Responsable Cybersécurité / RSSI',
+    'Consultant divers logiciels',
+    'Consultant IA',
+    'Architecte SI',
+    'Consultant Infrastructure & Cloud',
+    'Product Manager Senior',
+  ]},
+  { group: 'Commerce & Marketing', options: [
+    'Directeur Commercial',
+    'VP Sales / Directeur des Ventes',
+    'Head of Sales',
+    'Directeur Marketing',
+    'Directeur Développement Business',
+    'Directeur CRM & Expérience Client',
+    'Directeur Communication',
+    'Responsable Marketing Digital',
+  ]},
+  { group: 'PMO & Gestion de Projet', options: [
+    'Directeur de Programme',
+    'PMO Manager',
+    'Chef de Projet Senior',
+    'Directeur Transformation',
+    'Responsable Bureau des Projets',
+    'Project Manager Senior',
+  ]},
+  { group: 'Autres', options: ['Autres'] },
+]
+
+function FunctionSelect({ value, onChange, otherValue, onOtherChange }: {
+  value: string
+  onChange: (v: string) => void
+  otherValue: string
+  onOtherChange: (v: string) => void
+}) {
+  return (
+    <>
+      <select value={value} onChange={e => onChange(e.target.value)}>
+        <option value="">Sélectionner...</option>
+        {FUNCTIONS_OPTIONS.map(group => (
+          <optgroup key={group.group} label={`── ${group.group}`}>
+            {group.options.map(opt => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </optgroup>
+        ))}
+      </select>
+      {value === 'Autres' && (
+        <input
+          type="text"
+          placeholder="Précisez votre poste..."
+          value={otherValue}
+          onChange={e => onOtherChange(e.target.value)}
+          style={{ marginTop: 8 }}
+        />
+      )}
+    </>
+  )
+}
+
 function StepsBar({ steps, current }: { steps: string[]; current: number }) {
   return (
     <div className="steps-bar">
@@ -55,6 +150,7 @@ function ManagerForm() {
   const [error, setError] = useState('')
   const [selectedSectors, setSelectedSectors] = useState<string[]>([])
   const [cvName, setCvName] = useState('')
+  const [otherFunction, setOtherFunction] = useState('')
 
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', phone: '',
@@ -67,7 +163,6 @@ function ManagerForm() {
   }
 
   const handleSubmit = async () => {
-    // Validation champs obligatoires
     if (!form.firstName.trim()) { setError('Le prénom est obligatoire.'); return }
     if (!form.lastName.trim()) { setError('Le nom est obligatoire.'); return }
     if (!form.email.trim()) { setError("L'email est obligatoire."); return }
@@ -77,6 +172,7 @@ function ManagerForm() {
     setLoading(true)
     setError('')
     try {
+      const finalFunction = form.function === 'Autres' ? otherFunction : form.function
       const res = await fetch('/api/candidates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -84,7 +180,7 @@ function ManagerForm() {
           name: `${form.firstName} ${form.lastName}`.trim(),
           email: form.email,
           phone: form.phone,
-          role_function: form.function,
+          role_function: finalFunction,
           tjm: form.tjm ? parseInt(form.tjm) : null,
           location: form.location,
           availability: form.availability,
@@ -137,47 +233,12 @@ function ManagerForm() {
             </div>
             <div className="form-group">
               <label>Fonction</label>
-              <select value={form.function} onChange={e => setForm(f => ({ ...f, function: e.target.value }))}>
-                <option value="">Sélectionner...</option>
-                <optgroup label="── Finance &amp; Gestion">
-                  <option>DAF / Directeur Financier</option>
-                  <option>RAF / Responsable Administratif et Financier</option>
-                  <option>Directeur Contrôle de Gestion</option>
-                  <option>Directeur Trésorerie</option>
-                  <option>Directeur Comptable</option>
-                </optgroup>
-                <optgroup label="── Ressources Humaines">
-                  <option>DRH / Directeur RH</option>
-                  <option>RRH Généraliste</option>
-                  <option>HRBP Senior</option>
-                  <option>Directeur Talent Acquisition</option>
-                </optgroup>
-                <optgroup label="── Direction Générale &amp; Stratégie">
-                  <option>CEO / Directeur Général</option>
-                  <option>COO / Directeur des Opérations</option>
-                  <option>Directeur de Transition / Turnaround</option>
-                  <option>Directeur Stratégie &amp; Développement</option>
-                  <option>Directeur M&amp;A</option>
-                </optgroup>
-                <optgroup label="── Supply Chain &amp; Industrie">
-                  <option>Directeur Supply Chain</option>
-                  <option>Directeur Industriel</option>
-                  <option>Directeur des Achats</option>
-                  <option>Directeur Logistique</option>
-                  <option>Directeur Production</option>
-                </optgroup>
-                <optgroup label="── Systèmes d'Information">
-                  <option>DSI / Directeur SI</option>
-                  <option>CTO / Directeur Technique</option>
-                  <option>Directeur Digital &amp; Transformation</option>
-                  <option>RSSI</option>
-                </optgroup>
-                <optgroup label="── Commerce &amp; Marketing">
-                  <option>Directeur Commercial</option>
-                  <option>Directeur des Ventes</option>
-                  <option>Directeur Marketing</option>
-                </optgroup>
-              </select>
+              <FunctionSelect
+                value={form.function}
+                onChange={v => setForm(f => ({ ...f, function: v }))}
+                otherValue={otherFunction}
+                onOtherChange={setOtherFunction}
+              />
             </div>
             <div className="form-group">
               <label>TJM souhaité (€/j)</label>
@@ -239,13 +300,7 @@ function ManagerForm() {
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>PDF, max 5MB</div>
               </div>
-              <input
-                type="file"
-                id="cvFile"
-                accept=".pdf"
-                style={{ display: 'none' }}
-                onChange={e => e.target.files?.[0] && setCvName(e.target.files[0].name)}
-              />
+              <input type="file" id="cvFile" accept=".pdf" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && setCvName(e.target.files[0].name)} />
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
@@ -268,13 +323,7 @@ function ManagerForm() {
           </div>
           <div className="section-label" style={{ marginBottom: 10 }}>Choisissez un créneau</div>
           <div style={{ minHeight: 650, borderRadius: 8, overflow: 'hidden' }}>
-            <iframe
-              src="https://calendly.com/suranjith-ranamuka/appel-de-qualification-bridgeflow"
-              width="100%"
-              height="650"
-              frameBorder="0"
-              style={{ border: 'none' }}
-            />
+            <iframe src="https://calendly.com/suranjith-ranamuka/appel-de-qualification-bridgeflow" width="100%" height="650" frameBorder="0" style={{ border: 'none' }} />
           </div>
           <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
             <button className="btn-secondary" onClick={() => setStep(1)}>← Retour</button>
@@ -308,6 +357,7 @@ function EntrepriseForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [selectedSkills, setSelectedSkills] = useState<string[]>([])
+  const [otherRole, setOtherRole] = useState('')
 
   const [form, setForm] = useState({
     companyName: '', contactName: '', email: '', phone: '',
@@ -320,7 +370,6 @@ function EntrepriseForm() {
   }
 
   const handleSubmit = async () => {
-    // Validation champs obligatoires
     if (!form.companyName.trim()) { setError("Le nom de l'entreprise est obligatoire."); return }
     if (!form.contactName.trim()) { setError('Votre nom et fonction sont obligatoires.'); return }
     if (!form.email.trim()) { setError("L'email est obligatoire."); return }
@@ -329,6 +378,7 @@ function EntrepriseForm() {
     setLoading(true)
     setError('')
     try {
+      const finalRole = form.roleNeeded === 'Autres' ? otherRole : form.roleNeeded
       const res = await fetch('/api/companies', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -338,7 +388,7 @@ function EntrepriseForm() {
           email: form.email,
           phone: form.phone,
           size: form.size,
-          role_needed: form.roleNeeded,
+          role_needed: finalRole,
           mission_type: form.missionType,
           duration: form.duration,
           budget_tjm: form.budgetTjm ? parseInt(form.budgetTjm) : null,
@@ -402,31 +452,12 @@ function EntrepriseForm() {
             </div>
             <div className="form-group">
               <label>Profil recherché</label>
-              <select value={form.roleNeeded} onChange={e => setForm(f => ({ ...f, roleNeeded: e.target.value }))}>
-                <option value="">Sélectionner...</option>
-                <optgroup label="── Finance &amp; Gestion">
-                  <option>DAF / Directeur Financier</option>
-                  <option>Directeur Contrôle de Gestion</option>
-                </optgroup>
-                <optgroup label="── Ressources Humaines">
-                  <option>DRH / Directeur RH</option>
-                  <option>RRH Généraliste</option>
-                </optgroup>
-                <optgroup label="── Direction Générale &amp; Stratégie">
-                  <option>CEO / Directeur Général</option>
-                  <option>COO / Directeur des Opérations</option>
-                  <option>Directeur de Transition / Turnaround</option>
-                  <option>Directeur M&amp;A</option>
-                </optgroup>
-                <optgroup label="── Supply Chain &amp; Industrie">
-                  <option>Directeur Supply Chain</option>
-                  <option>Directeur des Achats</option>
-                </optgroup>
-                <optgroup label="── Systèmes d'Information">
-                  <option>DSI / Directeur SI</option>
-                  <option>CTO / Directeur Technique</option>
-                </optgroup>
-              </select>
+              <FunctionSelect
+                value={form.roleNeeded}
+                onChange={v => setForm(f => ({ ...f, roleNeeded: v }))}
+                otherValue={otherRole}
+                onOtherChange={setOtherRole}
+              />
             </div>
             <div className="form-group">
               <label>Type de mission</label>
@@ -478,12 +509,7 @@ function EntrepriseForm() {
             </div>
             <div className="form-group full">
               <label>Votre lien Calendly <span style={{ color: 'var(--text3)', fontWeight: 400 }}>(pour les entretiens avec les candidats)</span></label>
-              <input
-                type="url"
-                placeholder="https://calendly.com/votre-nom/entretien"
-                value={form.calendlyLink}
-                onChange={e => setForm(f => ({ ...f, calendlyLink: e.target.value }))}
-              />
+              <input type="url" placeholder="https://calendly.com/votre-nom/entretien" value={form.calendlyLink} onChange={e => setForm(f => ({ ...f, calendlyLink: e.target.value }))} />
               <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>
                 Créez votre lien sur <a href="https://calendly.com" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>calendly.com</a> — les candidats matchés pourront réserver directement un créneau.
               </div>
@@ -510,13 +536,7 @@ function EntrepriseForm() {
           </div>
           <div className="section-label" style={{ marginBottom: 10 }}>Choisissez un créneau</div>
           <div style={{ minHeight: 650, borderRadius: 8, overflow: 'hidden' }}>
-            <iframe
-              src="https://calendly.com/suranjith-ranamuka/appel-de-qualification-bridgeflow"
-              width="100%"
-              height="650"
-              frameBorder="0"
-              style={{ border: 'none' }}
-            />
+            <iframe src="https://calendly.com/suranjith-ranamuka/appel-de-qualification-bridgeflow" width="100%" height="650" frameBorder="0" style={{ border: 'none' }} />
           </div>
           <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
             <button className="btn-secondary" onClick={() => setStep(1)}>← Retour</button>
@@ -558,18 +578,12 @@ export default function RegisterScreen() {
 
       {!selected && (
         <div className="reg-choice">
-          <div
-            className={`choice-card${selected === 'candidat' ? ' sel' : ''}`}
-            onClick={() => setSelected('candidat')}
-          >
+          <div className={`choice-card${selected === 'candidat' ? ' sel' : ''}`} onClick={() => setSelected('candidat')}>
             <div className="choice-icon">👤</div>
             <div className="choice-title">Je suis manager</div>
             <div className="choice-sub">Je cherche des missions de transition</div>
           </div>
-          <div
-            className={`choice-card${selected === 'entreprise' ? ' sel' : ''}`}
-            onClick={() => setSelected('entreprise')}
-          >
+          <div className={`choice-card${selected === 'entreprise' ? ' sel' : ''}`} onClick={() => setSelected('entreprise')}>
             <div className="choice-icon">🏢</div>
             <div className="choice-title">Entreprise</div>
             <div className="choice-sub">Je cherche un manager de transition</div>
@@ -579,11 +593,7 @@ export default function RegisterScreen() {
 
       {selected && (
         <div style={{ marginBottom: 16 }}>
-          <button
-            className="btn-secondary"
-            style={{ fontSize: 12, padding: '6px 14px' }}
-            onClick={() => setSelected(null)}
-          >
+          <button className="btn-secondary" style={{ fontSize: 12, padding: '6px 14px' }} onClick={() => setSelected(null)}>
             ← Changer de type
           </button>
         </div>
