@@ -39,7 +39,7 @@ export default async function AdminPage() {
 
   const { data: interviewsRaw } = await supabase
     .from('interviews')
-    .select('id, type, status, calendly_link, scheduled_at, notes, created_at, candidate_id, company_id, match_id')
+    .select('id, type, status, calendly_link, meet_link, scheduled_at, notes, created_at, candidate_id, company_id, match_id')
     .order('created_at', { ascending: false })
     .limit(20)
 
@@ -52,7 +52,7 @@ export default async function AdminPage() {
       ? supabase.from('candidates').select('id, name, role_function, tjm, location, phone').in('id', candidateIds)
       : Promise.resolve({ data: [] as any[] }),
     companyIds.length > 0
-      ? supabase.from('companies').select('id, company_name, contact_name, location, budget_tjm, phone').in('id', companyIds)
+      ? supabase.from('companies').select('id, company_name, contact_name, location, budget_tjm').in('id', companyIds)
       : Promise.resolve({ data: [] as any[] }),
   ])
 
@@ -61,6 +61,7 @@ export default async function AdminPage() {
     type: i.type as string,
     status: i.status as string,
     calendly_link: i.calendly_link as string | null,
+    meet_link: i.meet_link as string | null,
     scheduled_at: i.scheduled_at as string | null,
     notes: i.notes as string | null,
     created_at: i.created_at as string,
@@ -68,11 +69,20 @@ export default async function AdminPage() {
     companies: ((companiesData ?? []) as any[]).find(c => c.id === i.company_id) ?? null,
   }))
 
+  // Vérifier si Google Calendar est connecté
+  const { data: googleSetting } = await supabase
+    .from('settings')
+    .select('value')
+    .eq('key', 'google_refresh_token')
+    .single()
+
+  const googleConnected = !!googleSetting?.value
+
   return (
     <>
       <Topbar title="Tableau de bord Admin" />
       <div className="content">
-        <AdminScreen kpis={kpis} interviews={interviews} />
+        <AdminScreen kpis={kpis} interviews={interviews} googleConnected={googleConnected} />
       </div>
     </>
   )
