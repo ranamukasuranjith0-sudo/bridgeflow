@@ -4,8 +4,7 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
-  const baseUrl = 'https://bridgeflow-delta.vercel.app'
-
+const baseUrl = 'https://www.bridgeflow.consulting'
   if (!code) {
     return NextResponse.redirect(`${baseUrl}/dashboard/admin?error=google_auth_failed`)
   }
