@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
+import { supabase } from '@/lib/supabase-browser'
 
 type RegistrationType = 'candidat' | 'entreprise' | null
 
@@ -153,7 +154,9 @@ function ManagerForm() {
   const [error, setError] = useState('')
   const [selectedSectors, setSelectedSectors] = useState<string[]>([])
   const [cvName, setCvName] = useState('')
+  const [cvFile, setCvFile] = useState<File | null>(null)
   const [otherFunction, setOtherFunction] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', phone: '',
@@ -165,6 +168,18 @@ function ManagerForm() {
     setSelectedSectors(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])
   }
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Le CV ne doit pas dépasser 5MB.')
+        return
+      }
+      setCvFile(file)
+      setCvName(file.name)
+    }
+  }
+
   const handleSubmit = async () => {
     if (!form.firstName.trim()) { setError('Le prénom est obligatoire.'); return }
     if (!form.lastName.trim()) { setError('Le nom est obligatoire.'); return }
@@ -174,7 +189,31 @@ function ManagerForm() {
 
     setLoading(true)
     setError('')
+
     try {
+      // 1. Upload CV vers Supabase Storage si un fichier est sélectionné
+      let cvUrl: string | null = null
+
+      if (cvFile) {
+        const fileName = `${Date.now()}_${cvFile.name.replace(/\s+/g, '_')}`
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('cvs')
+          .upload(fileName, cvFile, { upsert: false })
+
+        if (uploadError) {
+          setError("Erreur lors de l'upload du CV : " + uploadError.message)
+          setLoading(false)
+          return
+        }
+
+        const { data: urlData } = supabase.storage
+          .from('cvs')
+          .getPublicUrl(uploadData.path)
+
+        cvUrl = urlData.publicUrl
+      }
+
+      // 2. Envoyer le profil avec cv_url
       const finalFunction = form.function === 'Autres' ? otherFunction : form.function
       const res = await fetch('/api/candidates', {
         method: 'POST',
@@ -191,18 +230,22 @@ function ManagerForm() {
           mobility: form.mobility,
           experience_summary: form.experienceSummary,
           sectors: selectedSectors,
+          cv_url: cvUrl,
         }),
       })
+
       if (!res.ok) {
         const data = await res.json()
-        setError(data.error ?? 'Erreur lors de l\'envoi')
+        setError(data.error ?? "Erreur lors de l'envoi")
         setLoading(false)
         return
       }
+
       setStep(2)
     } catch (err) {
       setError('Erreur réseau')
     }
+
     setLoading(false)
   }
 
@@ -296,19 +339,25 @@ function ManagerForm() {
             </div>
             <div className="form-group full">
               <label>CV (PDF)</label>
-              <div className="upload-zone" onClick={() => document.getElementById('cvFile')?.click()}>
+              <div className="upload-zone" onClick={() => fileInputRef.current?.click()}>
                 <div className="upload-icon">📄</div>
                 <div className="upload-txt">
                   {cvName ? `✓ ${cvName}` : 'Glissez votre CV ici ou cliquez pour uploader'}
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>PDF, max 5MB</div>
               </div>
-              <input type="file" id="cvFile" accept=".pdf" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && setCvName(e.target.files[0].name)} />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf"
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
+              />
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
             <button className="btn-primary" onClick={handleSubmit} disabled={loading}>
-              {loading ? 'Envoi...' : 'Continuer — Choisir un créneau →'}
+              {loading ? 'Envoi en cours...' : 'Continuer — Choisir un créneau →'}
             </button>
           </div>
         </div>
