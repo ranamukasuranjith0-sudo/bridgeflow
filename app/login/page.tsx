@@ -15,6 +15,7 @@ export default function LoginPage() {
   const [role, setRole] = useState<Role>('manager')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [emailSent, setEmailSent] = useState(false)
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -57,8 +58,55 @@ export default function LoginPage() {
         return
       }
     }
-    router.push('/dashboard')
-    router.refresh()
+    setLoading(false)
+    setEmailSent(true)
+  }
+
+  // Ecran de confirmation email
+  if (emailSent) {
+    return (
+      <div className="login-page">
+        <div className="login-box">
+          <div className="login-logo">Bridge<span>Flow</span></div>
+          <div className="login-sub">MANAGEMENT DE TRANSITION</div>
+          <div className="login-card" style={{ marginTop: 24, textAlign: 'center' }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>📧</div>
+            <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>
+              Confirmez votre email
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 20, lineHeight: 1.6 }}>
+              Un email de confirmation a été envoyé à<br />
+              <strong style={{ color: 'var(--text)' }}>{email}</strong>
+            </div>
+            <div style={{ background: 'rgba(200,169,110,0.08)', border: '1px solid rgba(200,169,110,0.2)', borderRadius: 10, padding: '14px 16px', marginBottom: 20, fontSize: 12, color: 'var(--text2)', textAlign: 'left' }}>
+              <div style={{ fontWeight: 600, marginBottom: 6, color: 'var(--text)' }}>Prochaines étapes :</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div>1. Vérifiez votre boîte mail et cliquez sur le lien de confirmation</div>
+                <div>2. Connectez-vous avec vos identifiants</div>
+                <div>3. Complétez votre inscription via "Nouvelle inscription"</div>
+                <div>4. Après validation par notre équipe, accédez aux missions</div>
+              </div>
+            </div>
+            <button
+              className="btn-secondary"
+              style={{ width: '100%' }}
+              onClick={() => { setEmailSent(false); setTab('login') }}
+            >
+              Retour à la connexion
+            </button>
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 12 }}>
+              Pas reçu ? Vérifiez vos spams ou{' '}
+              <span
+                style={{ color: 'var(--accent)', cursor: 'pointer' }}
+                onClick={() => supabase.auth.resend({ type: 'signup', email })}
+              >
+                renvoyer l&apos;email
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -110,7 +158,6 @@ export default function LoginPage() {
               <button className="btn-primary" style={{ width: '100%', marginTop: 8 }} disabled={loading}>
                 {loading ? 'Connexion...' : 'Se connecter →'}
               </button>
-              {/* ← Lien mot de passe oublié */}
               <div style={{ textAlign: 'center', marginTop: 14 }}>
                 <a
                   href="/login/forgot-password"
