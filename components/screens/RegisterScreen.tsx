@@ -19,6 +19,7 @@ const FUNCTIONS_OPTIONS = [
     'Trésorier / Cash Management',
     'Responsable Comptable',
     'Directeur de la Trésorerie',
+    'Consultant Finance',
   ]},
   { group: 'Ressources Humaines', options: [
     'DRH / Directeur RH',
@@ -29,6 +30,7 @@ const FUNCTIONS_OPTIONS = [
     'Responsable Relations Sociales',
     'HR Manager',
     'Directeur Compensation & Benefits',
+    'Consultant RH',
   ]},
   { group: 'Supply Chain & Industrie', options: [
     'Directeur Supply Chain',
@@ -39,6 +41,7 @@ const FUNCTIONS_OPTIONS = [
     'Directeur Industriel',
     'Responsable Lean / Excellence Opérationnelle',
     'Directeur Qualité',
+    'Consultant Supply Chain & Industrie',
   ]},
   { group: "Systèmes d'Information", options: [
     'DSI / Directeur SI',
@@ -46,7 +49,7 @@ const FUNCTIONS_OPTIONS = [
     'Directeur Digital & Transformation',
     'Directeur de Projet IT / PMO',
     'Responsable Cybersécurité / RSSI',
-    'Consultant divers logiciels',
+    'Consultant expert en logiciels',
     'Consultant IA',
     'Architecte SI',
     'Consultant Infrastructure & Cloud',
