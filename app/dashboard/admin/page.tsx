@@ -69,7 +69,6 @@ export default async function AdminPage() {
     companies: ((companiesData ?? []) as any[]).find(c => c.id === i.company_id) ?? null,
   }))
 
-  // Vérifier si Google Calendar est connecté
   const { data: googleSetting } = await supabase
     .from('settings')
     .select('value')
@@ -78,9 +77,9 @@ export default async function AdminPage() {
 
   const googleConnected = !!googleSetting?.value
 
-  // Fetcher les profils en attente de validation
+  // ✅ cv_url ajouté dans la sélection des candidats en attente
   const [{ data: pendingCandidates }, { data: pendingCompanies }] = await Promise.all([
-    supabase.from('candidates').select('id, name, email, role_function, tjm, location, phone, created_at').eq('status', 'pending'),
+    supabase.from('candidates').select('id, name, email, role_function, tjm, location, phone, cv_url, created_at').eq('status', 'pending'),
     supabase.from('companies').select('id, company_name, contact_name, email, location, budget_tjm, created_at').eq('status', 'pending'),
   ])
 
