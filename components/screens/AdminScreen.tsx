@@ -9,6 +9,20 @@ interface KPIs {
   plannedInterviews: number
 }
 
+interface PendingProfile {
+  id: string
+  name: string
+  email: string
+  role_function?: string
+  company_name?: string
+  contact_name?: string
+  tjm?: number | null
+  location?: string | null
+  phone?: string | null
+  created_at: string
+  type: 'candidate' | 'company'
+}
+
 interface RealInterview {
   id: string
   type: string
@@ -71,6 +85,8 @@ interface AdminScreenProps {
   kpis: KPIs
   interviews?: RealInterview[]
   googleConnected?: boolean
+  pendingCandidates?: PendingProfile[]
+  pendingCompanies?: PendingProfile[]
 }
 
 const STATIC_INTERVIEWS: Interview[] = [
@@ -152,6 +168,12 @@ function formatHeure(dateStr: string | null): string {
   return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
 }
 
+function getInitials(name: string): string {
+  const parts = name.trim().split(' ')
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
+  return name.substring(0, 2).toUpperCase()
+}
+
 function convertRealInterview(r: RealInterview): Interview {
   const candidateName = r.candidates?.name ?? 'Candidat'
   const companyName = r.companies?.company_name ?? 'Entreprise'
@@ -195,16 +217,38 @@ function convertRealInterview(r: RealInterview): Interview {
   }
 }
 
-export default function AdminScreen({ kpis, interviews: realInterviews = [], googleConnected = false }: AdminScreenProps) {
+export default function AdminScreen({
+  kpis,
+  interviews: realInterviews = [],
+  googleConnected = false,
+  pendingCandidates = [],
+  pendingCompanies = [],
+}: AdminScreenProps) {
   const [selectedInterview, setSelectedInterview] = useState<Interview | null>(null)
   const [generatingMeet, setGeneratingMeet] = useState(false)
   const [urlMessage, setUrlMessage] = useState('')
+  const [validatedIds, setValidatedIds] = useState<Set<string>>(new Set())
+  const [rejectedIds, setRejectedIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.get('success') === 'google_connected') setUrlMessage('Google Calendar connecte avec succes!')
     if (params.get('error')) setUrlMessage('Erreur lors de la connexion Google. Reessayez.')
   }, [])
+
+  const handleValidate = async (id: string, type: 'candidate' | 'company', action: 'validate' | 'reject') => {
+    try {
+      await fetch('/api/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, type, action }),
+      })
+      if (action === 'validate') setValidatedIds(prev => new Set([...prev, id]))
+      else setRejectedIds(prev => new Set([...prev, id]))
+    } catch {
+      alert('Erreur lors de la validation')
+    }
+  }
 
   const handleGenerateMeet = async (interview: Interview) => {
     setGeneratingMeet(true)
@@ -234,6 +278,11 @@ export default function AdminScreen({ kpis, interviews: realInterviews = [], goo
     ? realInterviews.map(convertRealInterview)
     : STATIC_INTERVIEWS
 
+  const allPending = [
+    ...pendingCandidates.map(p => ({ ...p, type: 'candidate' as const })),
+    ...pendingCompanies.map(p => ({ ...p, type: 'company' as const })),
+  ].filter(p => !validatedIds.has(p.id) && !rejectedIds.has(p.id))
+
   const groupedByDate = interviews.reduce((acc, interview) => {
     const key = interview.date
     if (!acc[key]) acc[key] = []
@@ -262,24 +311,19 @@ export default function AdminScreen({ kpis, interviews: realInterviews = [], goo
         Vue d&apos;ensemble de votre activite BridgeFlow
       </div>
 
-      {/* Bandeau Google Calendar */}
       {urlMessage && (
         <div style={{ background: urlMessage.includes('succes') ? 'rgba(74,222,128,0.1)' : 'rgba(239,68,68,0.1)', border: `1px solid ${urlMessage.includes('succes') ? 'rgba(74,222,128,0.3)' : 'rgba(239,68,68,0.3)'}`, borderRadius: 8, padding: '10px 16px', marginBottom: 16, fontSize: 13 }}>
           {urlMessage}
         </div>
       )}
 
-      {/* Bouton connexion Google */}
       {!googleConnected && (
         <div className="card" style={{ marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px' }}>
           <div>
             <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 2 }}>Google Calendar non connecte</div>
             <div style={{ fontSize: 12, color: 'var(--text3)' }}>Connectez votre compte pour generer des liens Google Meet automatiquement</div>
           </div>
-          <a
-            href="/api/auth/google"
-            style={{ background: '#4285f4', color: '#fff', padding: '8px 18px', borderRadius: 50, fontSize: 13, fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap' }}
-          >
+          <a href="/api/auth/google" style={{ background: '#4285f4', color: '#fff', padding: '8px 18px', borderRadius: 50, fontSize: 13, fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap' }}>
             Connecter Google
           </a>
         </div>
@@ -312,6 +356,54 @@ export default function AdminScreen({ kpis, interviews: realInterviews = [], goo
 
       <div className="admin-layout">
         <div className="admin-left">
+
+          {/* Section profils en attente */}
+          {allPending.length > 0 && (
+            <div className="card" style={{ marginBottom: 16 }}>
+              <div className="card-title">
+                <span className="dot"></span>
+                Profils en attente de validation
+                <span style={{ background: '#f59e0b', color: '#0a0a0f', borderRadius: 50, padding: '1px 7px', fontSize: 10, fontWeight: 700, marginLeft: 4 }}>
+                  {allPending.length}
+                </span>
+              </div>
+              {allPending.map(profile => (
+                <div key={profile.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
+                  <div style={{ width: 38, height: 38, borderRadius: '50%', background: profile.type === 'candidate' ? '#7c3aed' : '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+                    {getInitials(profile.type === 'candidate' ? profile.name : (profile.company_name ?? profile.name))}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: 13 }}>
+                      {profile.type === 'candidate' ? profile.name : profile.company_name}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text3)' }}>
+                      {profile.type === 'candidate'
+                        ? `${profile.role_function ?? ''} · ${profile.location ?? ''}`
+                        : `${profile.contact_name ?? ''} · ${profile.location ?? ''}`
+                      }
+                    </div>
+                    <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 2 }}>
+                      {profile.email} · {profile.type === 'candidate' ? 'Candidat' : 'Entreprise'}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                    <button
+                      onClick={() => handleValidate(profile.id, profile.type, 'validate')}
+                      style={{ background: 'rgba(74,222,128,0.15)', color: 'var(--green)', border: '1px solid rgba(74,222,128,0.3)', borderRadius: 50, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      Valider
+                    </button>
+                    <button
+                      onClick={() => handleValidate(profile.id, profile.type, 'reject')}
+                      style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 50, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      Refuser
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="card">
             <div className="card-title">
@@ -374,11 +466,7 @@ export default function AdminScreen({ kpis, interviews: realInterviews = [], goo
                     if (!interview) return null
                     const { cls, lbl } = getStatusBadge(interview.status)
                     return (
-                      <div
-                        key={id}
-                        className="planning-slot"
-                        onClick={() => setSelectedInterview(interview)}
-                      >
+                      <div key={id} className="planning-slot" onClick={() => setSelectedInterview(interview)}>
                         <div className="pslot-time">
                           <div className="pslot-hour">{interview.heure}</div>
                           <div className="pslot-dur">{interview.duree}</div>
@@ -448,35 +536,25 @@ export default function AdminScreen({ kpis, interviews: realInterviews = [], goo
               </div>
               <div style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 12 }}>{selectedInterview.format}</div>
 
-              {/* Telephone candidat */}
               {selectedInterview.candidatePhone && (
                 <div style={{ background: 'rgba(200,169,110,0.08)', border: '1px solid rgba(200,169,110,0.2)', borderRadius: 8, padding: '12px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div>
                     <div style={{ fontSize: 11, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>Telephone candidat</div>
                     <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '0.02em' }}>{selectedInterview.candidatePhone}</div>
                   </div>
-                  <a
-                    href={`tel:${selectedInterview.candidatePhone}`}
-                    style={{ background: 'var(--accent)', color: '#0a0a0f', padding: '8px 16px', borderRadius: 50, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}
-                  >
+                  <a href={`tel:${selectedInterview.candidatePhone}`} style={{ background: 'var(--accent)', color: '#0a0a0f', padding: '8px 16px', borderRadius: 50, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
                     Appeler
                   </a>
                 </div>
               )}
 
-              {/* Lien Google Meet */}
               {selectedInterview.meetLink ? (
                 <div style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 8, padding: '12px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div>
                     <div style={{ fontSize: 11, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>Google Meet</div>
                     <div style={{ fontSize: 12, color: 'var(--green)', fontWeight: 500 }}>Lien genere</div>
                   </div>
-                  <a
-                    href={selectedInterview.meetLink}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{ background: '#34a853', color: '#fff', padding: '8px 16px', borderRadius: 50, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}
-                  >
+                  <a href={selectedInterview.meetLink} target="_blank" rel="noreferrer" style={{ background: '#34a853', color: '#fff', padding: '8px 16px', borderRadius: 50, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
                     Rejoindre
                   </a>
                 </div>
@@ -492,15 +570,9 @@ export default function AdminScreen({ kpis, interviews: realInterviews = [], goo
                 </div>
               )}
 
-              {/* Lien Calendly */}
               {selectedInterview.calendlyLink && (
                 <div style={{ marginBottom: 12 }}>
-                  <a
-                    href={selectedInterview.calendlyLink}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'none' }}
-                  >
+                  <a href={selectedInterview.calendlyLink} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'none' }}>
                     Lien Calendly: {selectedInterview.calendlyLink}
                   </a>
                 </div>
