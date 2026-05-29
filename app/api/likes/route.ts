@@ -209,13 +209,13 @@ async function sendMatchEmails(
 
       await Promise.all([
         resend.emails.send({
-          from: 'BridgeFlow <onboarding@resend.dev>',
+          from: 'BridgeFlow <contact@bridgeflow.consulting>',
           to: [candidate.email],
           subject: `🎯 Match Mutuel ! ${company.company_name} — ${mission.title}`,
           html: matchEmailHtml,
         }),
         resend.emails.send({
-          from: 'BridgeFlow <onboarding@resend.dev>',
+          from: 'BridgeFlow <contact@bridgeflow.consulting>',
           to: [company.email],
           subject: `🎯 Match Mutuel ! ${candidate.name} — ${mission.title}`,
           html: matchEmailHtml,
