@@ -294,7 +294,7 @@ function ManagerForm() {
               <div className="pstep active">⏳ Entretien de qualification à venir</div>
               <div className="pstep">○ Validation et accès à BridgeFlow</div>
             </div>
-            <div className="contact-note">📧 Email de confirmation envoyé · <span style={{ color: 'var(--accent)' }}>contact@bridgeflow.io</span></div>
+            <div className="contact-note">📧 Email de confirmation envoyé · <span style={{ color: 'var(--accent)' }}>contact@bridgeflow.consulting</span></div>
           </div>
         </div>
       )}
@@ -536,7 +536,7 @@ function EntrepriseForm() {
               <div className="pstep active">⏳ Appel de qualification à venir</div>
               <div className="pstep">○ Réception de 2-3 profils ciblés</div>
             </div>
-            <div className="contact-note">📧 Confirmation envoyée · <span style={{ color: 'var(--accent)' }}>contact@bridgeflow.io</span></div>
+            <div className="contact-note">📧 Confirmation envoyée · <span style={{ color: 'var(--accent)' }}>contact@bridgeflow.consulting</span></div>
           </div>
         </div>
       )}
