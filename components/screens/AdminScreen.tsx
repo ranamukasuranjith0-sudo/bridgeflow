@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface KPIs {
   activeCandidates: number
@@ -17,6 +17,7 @@ interface RealInterview {
   scheduled_at: string | null
   notes: string | null
   created_at: string
+  meet_link?: string | null
   candidates: {
     id: string
     name: string
@@ -53,6 +54,7 @@ interface Interview {
   barClass: 'qual' | 'entreprise' | 'match'
   calendlyLink?: string | null
   candidatePhone?: string | null
+  meetLink?: string | null
 }
 
 interface PipelineItem {
@@ -68,6 +70,7 @@ interface PipelineItem {
 interface AdminScreenProps {
   kpis: KPIs
   interviews?: RealInterview[]
+  googleConnected?: boolean
 }
 
 const STATIC_INTERVIEWS: Interview[] = [
@@ -158,12 +161,16 @@ function convertRealInterview(r: RealInterview): Interview {
   const location = r.candidates?.location ?? r.companies?.location ?? '--'
   const date = formatDate(r.scheduled_at)
   const heure = formatHeure(r.scheduled_at)
-  const format = r.calendly_link ? 'Calendly envoye aux deux parties' : 'En attente Calendly'
+  const format = r.meet_link
+    ? 'Google Meet genere'
+    : r.calendly_link ? 'Calendly envoye aux deux parties' : 'En attente Calendly'
   const status: Interview['status'] = r.status === 'confirmed' ? 'confirmed' : r.status === 'pending' ? 'pending' : 'todo'
 
-  const actions = r.calendly_link
-    ? ['Voir le Calendly', `Contacter ${candidateName}`, `Contacter ${companyName}`]
-    : [`Contacter ${candidateName}`, `Contacter ${companyName}`, 'Envoyer Calendly']
+  const actions = r.meet_link
+    ? ['Rejoindre le Meet', `Contacter ${candidateName}`, `Contacter ${companyName}`]
+    : r.calendly_link
+      ? ['Voir le Calendly', `Contacter ${candidateName}`, `Contacter ${companyName}`]
+      : [`Contacter ${candidateName}`, `Contacter ${companyName}`, 'Envoyer Calendly']
 
   return {
     id: r.id,
@@ -184,11 +191,44 @@ function convertRealInterview(r: RealInterview): Interview {
     barClass: 'match',
     calendlyLink: r.calendly_link,
     candidatePhone: r.candidates?.phone ?? null,
+    meetLink: r.meet_link ?? null,
   }
 }
 
-export default function AdminScreen({ kpis, interviews: realInterviews = [] }: AdminScreenProps) {
+export default function AdminScreen({ kpis, interviews: realInterviews = [], googleConnected = false }: AdminScreenProps) {
   const [selectedInterview, setSelectedInterview] = useState<Interview | null>(null)
+  const [generatingMeet, setGeneratingMeet] = useState(false)
+  const [urlMessage, setUrlMessage] = useState('')
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('success') === 'google_connected') setUrlMessage('Google Calendar connecte avec succes!')
+    if (params.get('error')) setUrlMessage('Erreur lors de la connexion Google. Reessayez.')
+  }, [])
+
+  const handleGenerateMeet = async (interview: Interview) => {
+    setGeneratingMeet(true)
+    try {
+      const res = await fetch('/api/meet/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          candidateName: interview.name,
+          companyName: interview.role,
+          scheduledAt: null,
+          interviewId: interview.id,
+        }),
+      })
+      const data = await res.json()
+      if (data.meet_link) {
+        window.open(data.meet_link, '_blank')
+        setSelectedInterview(prev => prev ? { ...prev, meetLink: data.meet_link } : null)
+      }
+    } catch {
+      alert('Erreur lors de la creation du Meet')
+    }
+    setGeneratingMeet(false)
+  }
 
   const interviews: Interview[] = realInterviews.length > 0
     ? realInterviews.map(convertRealInterview)
@@ -221,6 +261,35 @@ export default function AdminScreen({ kpis, interviews: realInterviews = [] }: A
       <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 20 }}>
         Vue d&apos;ensemble de votre activite BridgeFlow
       </div>
+
+      {/* Bandeau Google Calendar */}
+      {urlMessage && (
+        <div style={{ background: urlMessage.includes('succes') ? 'rgba(74,222,128,0.1)' : 'rgba(239,68,68,0.1)', border: `1px solid ${urlMessage.includes('succes') ? 'rgba(74,222,128,0.3)' : 'rgba(239,68,68,0.3)'}`, borderRadius: 8, padding: '10px 16px', marginBottom: 16, fontSize: 13 }}>
+          {urlMessage}
+        </div>
+      )}
+
+      {/* Bouton connexion Google */}
+      {!googleConnected && (
+        <div className="card" style={{ marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px' }}>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 2 }}>Google Calendar non connecte</div>
+            <div style={{ fontSize: 12, color: 'var(--text3)' }}>Connectez votre compte pour generer des liens Google Meet automatiquement</div>
+          </div>
+          <a
+            href="/api/auth/google"
+            style={{ background: '#4285f4', color: '#fff', padding: '8px 18px', borderRadius: 50, fontSize: 13, fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap' }}
+          >
+            Connecter Google
+          </a>
+        </div>
+      )}
+
+      {googleConnected && (
+        <div style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 8, padding: '8px 16px', marginBottom: 16, fontSize: 12, color: 'var(--green)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          Google Calendar connecte — liens Meet generes automatiquement
+        </div>
+      )}
 
       <div className="kpi-row" style={{ marginBottom: 20 }}>
         <div className="kpi-card">
@@ -378,6 +447,8 @@ export default function AdminScreen({ kpis, interviews: realInterviews = [] }: A
                 <div className="dp-item"><div className="dp-val">{selectedInterview.location}</div><div className="dp-lab">Lieu</div></div>
               </div>
               <div style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 12 }}>{selectedInterview.format}</div>
+
+              {/* Telephone candidat */}
               {selectedInterview.candidatePhone && (
                 <div style={{ background: 'rgba(200,169,110,0.08)', border: '1px solid rgba(200,169,110,0.2)', borderRadius: 8, padding: '12px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div>
@@ -392,6 +463,36 @@ export default function AdminScreen({ kpis, interviews: realInterviews = [] }: A
                   </a>
                 </div>
               )}
+
+              {/* Lien Google Meet */}
+              {selectedInterview.meetLink ? (
+                <div style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 8, padding: '12px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <div style={{ fontSize: 11, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>Google Meet</div>
+                    <div style={{ fontSize: 12, color: 'var(--green)', fontWeight: 500 }}>Lien genere</div>
+                  </div>
+                  <a
+                    href={selectedInterview.meetLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ background: '#34a853', color: '#fff', padding: '8px 16px', borderRadius: 50, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}
+                  >
+                    Rejoindre
+                  </a>
+                </div>
+              ) : googleConnected && (
+                <div style={{ marginBottom: 12 }}>
+                  <button
+                    onClick={() => handleGenerateMeet(selectedInterview)}
+                    disabled={generatingMeet}
+                    style={{ width: '100%', padding: '10px', borderRadius: 50, fontSize: 13, fontWeight: 600, cursor: 'pointer', background: '#4285f4', color: '#fff', border: 'none' }}
+                  >
+                    {generatingMeet ? 'Generation...' : 'Generer un lien Google Meet'}
+                  </button>
+                </div>
+              )}
+
+              {/* Lien Calendly */}
               {selectedInterview.calendlyLink && (
                 <div style={{ marginBottom: 12 }}>
                   <a
@@ -404,6 +505,7 @@ export default function AdminScreen({ kpis, interviews: realInterviews = [] }: A
                   </a>
                 </div>
               )}
+
               {selectedInterview.notes && (
                 <>
                   <div className="dp-notes-lbl">Notes</div>
@@ -423,7 +525,9 @@ export default function AdminScreen({ kpis, interviews: realInterviews = [] }: A
                       border: i === 0 ? 'none' : '1px solid var(--border2)',
                     }}
                     onClick={() => {
-                      if (action.includes('Calendly') && selectedInterview.calendlyLink) {
+                      if (action.includes('Meet') && selectedInterview.meetLink) {
+                        window.open(selectedInterview.meetLink, '_blank')
+                      } else if (action.includes('Calendly') && selectedInterview.calendlyLink) {
                         window.open(selectedInterview.calendlyLink, '_blank')
                       } else {
                         setSelectedInterview(null)
