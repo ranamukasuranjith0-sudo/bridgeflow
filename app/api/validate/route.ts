@@ -6,15 +6,15 @@ export async function POST(request: NextRequest) {
   try {
     const { id, type, action } = await request.json()
 
-    // Client normal pour vérifier la session
+    // Client normal pour vérifier l'utilisateur
     const supabase = await createSupabaseServerClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
-      .eq('id', session.user.id)
+      .eq('id', user.id)
       .single()
 
     if (profile?.role !== 'admin') {
