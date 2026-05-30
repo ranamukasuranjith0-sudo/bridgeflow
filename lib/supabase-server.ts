@@ -1,9 +1,9 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies()
-
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -23,5 +23,13 @@ export async function createSupabaseServerClient() {
         },
       },
     }
+  )
+}
+
+// Client admin qui bypasse les RLS — uniquement pour les API routes admin
+export function createSupabaseAdminClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 }
