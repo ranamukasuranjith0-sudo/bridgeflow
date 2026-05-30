@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { createSupabaseServerClient, createSupabaseAdminClient } from '@/lib/supabase-server'
 import { resend } from '@/lib/resend'
 
 export async function POST(request: NextRequest) {
   try {
     const { id, type, action } = await request.json()
 
+    // Client normal pour vérifier la session
     const supabase = await createSupabaseServerClient()
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
@@ -20,10 +21,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
     }
 
+    // Client admin qui bypasse les RLS pour l'update
+    const supabaseAdmin = createSupabaseAdminClient()
+
     const newStatus = action === 'validate' ? 'validated' : 'rejected'
     const table = type === 'candidate' ? 'candidates' : 'companies'
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from(table)
       .update({ status: newStatus })
       .eq('id', id)
@@ -32,8 +36,7 @@ export async function POST(request: NextRequest) {
 
     // Envoi d'email uniquement à la validation
     if (action === 'validate') {
-      // Récupérer le nom et email du profil validé
-      const { data: profileData } = await supabase
+      const { data: profileData } = await supabaseAdmin
         .from(table)
         .select(type === 'candidate' ? 'name, email' : 'company_name, contact_name, email')
         .eq('id', id)
