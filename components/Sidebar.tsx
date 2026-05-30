@@ -33,6 +33,7 @@ function getNavItems(role: string): NavItem[] {
   // entreprise
   return [
     { href: '/dashboard', icon: '⌂', label: 'Accueil' },
+    { href: '/dashboard/entreprise', icon: '📊', label: 'Mes missions' },
     { href: '/dashboard/match', icon: '◈', label: 'Candidats' },
     { href: '/dashboard/register', icon: '⊕', label: 'Nouvelle inscription' },
   ]
@@ -110,7 +111,7 @@ export default function Sidebar({ profile }: SidebarProps) {
             </Link>
             <Link
               href="/dashboard/admin#planning"
-              className={`nav-item ${pathname === '/dashboard/admin' ? '' : ''}`}
+              className="nav-item"
             >
               <span className="nav-icon">📅</span>
               Planning entretiens
