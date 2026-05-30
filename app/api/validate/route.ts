@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
         .from(table)
         .select(type === 'candidate' ? 'name, email' : 'company_name, contact_name, email')
         .eq('id', id)
-        .single()
+        .single() as { data: any }
 
       if (profileData?.email) {
         const isCandidate = type === 'candidate'
