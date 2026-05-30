@@ -6,23 +6,23 @@ export async function POST(request: NextRequest) {
   try {
     const { id, type, action } = await request.json()
 
-    // Client normal pour vérifier l'utilisateur
+    // Client normal pour lire les cookies de session
     const supabase = await createSupabaseServerClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-    const { data: profile } = await supabase
+    // Client admin pour toutes les opérations DB (bypasse les RLS)
+    const supabaseAdmin = createSupabaseAdminClient()
+
+    const { data: profile } = await supabaseAdmin
       .from('profiles')
       .select('role')
-      .eq('id', user.id)
+      .eq('id', session.user.id)
       .single()
 
     if (profile?.role !== 'admin') {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
     }
-
-    // Client admin qui bypasse les RLS pour l'update
-    const supabaseAdmin = createSupabaseAdminClient()
 
     const newStatus = action === 'validate' ? 'validated' : 'rejected'
     const table = type === 'candidate' ? 'candidates' : 'companies'
