@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { createSupabaseServerClient, createSupabaseAdminClient } from '@/lib/supabase-server'
 import { resend } from '@/lib/resend'
 
 export async function POST(request: NextRequest) {
@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
     const {
       company_name, contact_name, email, phone, size,
       role_needed, duration, budget_tjm, location,
-      start_date, context, required_skills,
+      start_date, context, required_skills, calendly_link,
     } = body
 
     if (!company_name || !email) {
@@ -19,7 +19,9 @@ export async function POST(request: NextRequest) {
     const supabase = await createSupabaseServerClient()
     const { data: { session } } = await supabase.auth.getSession()
 
-    const { data: company, error: dbError } = await supabase
+    const supabaseAdmin = createSupabaseAdminClient()
+
+    const { data: company, error: dbError } = await supabaseAdmin
       .from('companies')
       .insert({
         user_id: session?.user.id ?? null,
@@ -35,6 +37,7 @@ export async function POST(request: NextRequest) {
         start_date: start_date ?? null,
         context: context ?? null,
         required_skills: required_skills ?? [],
+        calendly_link: calendly_link ?? null,
         status: 'pending',
       })
       .select()
@@ -45,20 +48,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: dbError.message }, { status: 500 })
     }
 
+    // ✅ Mettre à jour le rôle dans profiles → entreprise
+    if (session?.user.id) {
+      await supabaseAdmin
+        .from('profiles')
+        .update({ role: 'entreprise' })
+        .eq('id', session.user.id)
+    }
+
     // Send confirmation emails
     try {
-      // Email to company
       await resend.emails.send({
-        from: 'BridgeFlow <onboarding@resend.dev>',
+        from: 'BridgeFlow <contact@bridgeflow.consulting>',
         to: [email],
         subject: 'BridgeFlow — Votre besoin a bien été enregistré ✓',
         html: companyConfirmationEmail(contact_name ?? company_name, company_name),
       })
 
-      // Email to admin
       const adminEmail = process.env.ADMIN_EMAIL ?? 'suranjith.ranamuka@hotmail.com'
       await resend.emails.send({
-        from: 'BridgeFlow <onboarding@resend.dev>',
+        from: 'BridgeFlow <contact@bridgeflow.consulting>',
         to: [adminEmail],
         subject: `Nouvelle entreprise — ${company_name}`,
         html: adminCompanyEmail(company_name, contact_name, email, role_needed, budget_tjm, location),
@@ -134,7 +143,7 @@ function adminCompanyEmail(
           ${location ? `<div style="font-size:14px;"><span style="color:#5a5870;">Localisation :</span> ${location}</div>` : ''}
         </div>
       </div>
-      <a href="${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/dashboard/admin"
+      <a href="https://www.bridgeflow.consulting/dashboard/admin"
          style="display:inline-block;background:#c8a96e;color:#0a0a0f;padding:10px 24px;border-radius:50px;font-size:13px;font-weight:600;text-decoration:none;">
         Voir dans le tableau de bord →
       </a>
