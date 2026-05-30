@@ -4,87 +4,6 @@ import { useState, useRef } from 'react'
 import Topbar from '@/components/Topbar'
 import type { Mission, Candidate } from '@/types'
 
-const STATIC_MISSIONS: Mission[] = [
-  {
-    id: '1', company_id: null,
-    title: 'DAF de transition', role: 'Directeur Financier',
-    location: 'Paris 8e', tjm: 1100, duration: '9 mois', urgency: 'Urgent',
-    tags: ['Restructuration', 'M&A', 'Reporting'],
-    summary: '→ Sécuriser le closing d\'une acquisition européenne (cible 60M€)\n→ Mettre en place le reporting consolidé groupe\n→ Piloter la relation avec les partenaires financiers\n→ Accompagner la direction dans les arbitrages stratégiques',
-    context: 'ETI familiale · 450 salariés · CA 180M€ · Distribution alimentaire',
-    initials: 'GL', color: '#7c3aed', status: 'active', created_at: new Date().toISOString(),
-  },
-  {
-    id: '2', company_id: null,
-    title: 'DRH de transition', role: 'Directeur RH',
-    location: 'Lyon', tjm: 950, duration: '6 mois', urgency: 'Sous 2 sem.',
-    tags: ['Change mgmt', 'GPEC', 'SIRH'],
-    summary: '→ Structurer la fonction RH (200 à 600 collaborateurs en 18 mois)\n→ Déployer un SIRH (Workday) sur l\'ensemble des entités\n→ Mettre en place une politique GPEC et onboarding\n→ Accompagner le management dans la transformation culturelle',
-    context: 'Startup Series B · 600 salariés · Levée récente 40M€ · MedTech',
-    initials: 'MS', color: '#059669', status: 'active', created_at: new Date().toISOString(),
-  },
-  {
-    id: '3', company_id: null,
-    title: 'Directeur des Opérations', role: 'COO',
-    location: 'Boulogne', tjm: 1300, duration: '12 mois', urgency: 'Immédiat',
-    tags: ['Supply chain', 'Lean', 'International'],
-    summary: '→ Déployer un programme lean manufacturing sur 5 sites européens\n→ Réduire les niveaux de stocks de 25% en 6 mois\n→ Sécuriser les approvisionnements critiques\n→ Manager une équipe de 8 responsables de site',
-    context: 'Grand groupe · 5 usines (FR, DE, ES, PL) · 2 000 personnes en scope',
-    initials: 'RS', color: '#b45309', status: 'active', created_at: new Date().toISOString(),
-  },
-  {
-    id: '4', company_id: null,
-    title: 'DSI de transition', role: 'Directeur SI',
-    location: 'Remote+Paris', tjm: 1050, duration: '6 mois', urgency: 'Sous 1 mois',
-    tags: ['ERP', 'SAP', 'Transfo digitale'],
-    summary: '→ Reprendre le leadership d\'un projet SAP S/4HANA en retard de 4 mois\n→ Recadrer les équipes internes et l\'intégrateur externe\n→ Assurer le go-live sur 3 entités du groupe\n→ Mettre en place la gouvernance SI post-déploiement',
-    context: 'Groupe de services · 3 filiales · 300 utilisateurs SAP · Full remote + Paris 2j/mois',
-    initials: 'DV', color: '#be185d', status: 'active', created_at: new Date().toISOString(),
-  },
-  {
-    id: '5', company_id: null,
-    title: 'DG de transition', role: 'Directeur Général',
-    location: 'Bordeaux', tjm: 1500, duration: '18 mois', urgency: 'Urgent',
-    tags: ['Turnaround', 'Immobilier', 'Direction générale'],
-    summary: '→ Stabiliser l\'organisation après départ de l\'actionnaire majoritaire\n→ Restructurer la dette bancaire et négocier avec les créanciers\n→ Piloter la cession de 3 actifs non stratégiques (VNI ~40M€)\n→ Préparer la recapitalisation et l\'entrée d\'un nouvel investisseur',
-    context: 'Foncière privée · 12 actifs · VNI ~120M€ · Équipe de 15 · Bordeaux',
-    initials: 'FN', color: '#0369a1', status: 'active', created_at: new Date().toISOString(),
-  },
-]
-
-const STATIC_CANDIDATES: Candidate[] = [
-  {
-    id: '1', user_id: null,
-    name: 'Jean-Marc Rousseau', email: 'jm@example.com',
-    phone: null, role_function: 'DAF / CFO',
-    tjm: 1050, location: 'Paris', availability: 'Immédiate',
-    legal_status: 'SASU', mobility: 'France entière',
-    experience_summary: 'Ex-DAF Danone Europe. Spécialisé restructurations financières et M&A. 4 acquisitions >50M€.',
-    sectors: ['Finance', 'Industrie'], cv_url: null,
-    status: 'validated', created_at: new Date().toISOString(),
-  },
-  {
-    id: '2', user_id: null,
-    name: 'Sophie Lefevre', email: 'sl@example.com',
-    phone: null, role_function: 'DRH',
-    tjm: 850, location: 'Lyon / Paris', availability: 'Sous 2 sem.',
-    legal_status: 'SASU', mobility: 'France entière',
-    experience_summary: 'Ancienne DRH startups tech (Séries A-C). Expert SIRH Workday, GPEC, transformation culturelle.',
-    sectors: ['Tech / IT', 'Santé'], cv_url: null,
-    status: 'validated', created_at: new Date().toISOString(),
-  },
-  {
-    id: '3', user_id: null,
-    name: 'Pierre Audibert', email: 'pa@example.com',
-    phone: null, role_function: 'COO / Supply Chain',
-    tjm: 1200, location: 'Île-de-France', availability: 'Immédiate',
-    legal_status: 'EURL', mobility: 'Europe',
-    experience_summary: 'Ex-VP Operations Michelin Europe. Expert lean manufacturing, certifié Six Sigma Black Belt.',
-    sectors: ['Industrie'], cv_url: null,
-    status: 'validated', created_at: new Date().toISOString(),
-  },
-]
-
 interface MatchScreenProps {
   role: string
   missions: Mission[]
@@ -172,7 +91,7 @@ function ManagerView({ missions, userId }: { missions: Mission[]; userId: string
           const calendlyLink = data.calendly_link ?? ''
           setLikedMissions(prev => [...prev, { mission, isMatch, calendlyLink }])
           if (isMatch) {
-            setMatchInfo({ mission, candidate: STATIC_CANDIDATES[0], calendlyLink })
+            setMatchInfo({ mission, candidate: { id: '', user_id: null, name: '', email: '', phone: null, role_function: '', tjm: null, location: null, availability: null, legal_status: null, mobility: null, experience_summary: null, sectors: [], cv_url: null, status: 'validated', created_at: '' }, calendlyLink })
             setTimeout(() => setShowMatch(true), 500)
           }
         } catch {
@@ -254,7 +173,8 @@ function ManagerView({ missions, userId }: { missions: Mission[]; userId: string
           {remaining.length === 0 ? (
             <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 10, color: 'var(--text2)', textAlign: 'center' }}>
               <div style={{ fontSize: 44 }}>🎯</div>
-              <div style={{ fontSize: 15, fontWeight: 600 }}>Plus de missions pour l&apos;instant</div>
+              <div style={{ fontSize: 15, fontWeight: 600 }}>Aucune mission disponible pour l&apos;instant</div>
+              <div style={{ fontSize: 12, color: 'var(--text3)' }}>Revenez bientôt, de nouvelles missions arrivent régulièrement</div>
             </div>
           ) : (
             [...visibleMissions].reverse().map((m, i) => {
@@ -367,7 +287,7 @@ function ManagerView({ missions, userId }: { missions: Mission[]; userId: string
             {[
               'Swipez à droite pour postuler à une mission',
               "L'entreprise examine votre profil de son côté",
-              'Si les deux valident → planifiez l\'entretien sur le Calendly de l\'entreprise',
+              "Si les deux valident → planifiez l'entretien sur le Calendly de l'entreprise",
             ].map((text, i) => (
               <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                 <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(200,169,110,0.15)', color: 'var(--accent)', fontSize: 11, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -385,7 +305,7 @@ function ManagerView({ missions, userId }: { missions: Mission[]; userId: string
         <div className="match-overlay show">
           <div className="mo-emoji">🎯</div>
           <div className="mo-title">Match Mutuel !</div>
-          <div className="mo-sub">{matchInfo.candidate.name} × {matchInfo.mission.role}</div>
+          <div className="mo-sub">{matchInfo.mission.role}</div>
           <div className="mo-detail">
             <div className="mo-row">
               <span style={{ color: 'var(--text2)' }}>Mission</span>
@@ -560,9 +480,6 @@ function EntrepriseView({ candidates, userId }: { candidates: Candidate[]; userI
 }
 
 export default function MatchScreen({ role, missions: propMissions, candidates: propCandidates, userId }: MatchScreenProps) {
-  const missions = propMissions.length > 0 ? propMissions : STATIC_MISSIONS
-  const candidates = propCandidates.length > 0 ? propCandidates : STATIC_CANDIDATES
-
   const [view, setView] = useState<'manager' | 'entreprise'>(
     role === 'entreprise' ? 'entreprise' : 'manager'
   )
@@ -581,10 +498,10 @@ export default function MatchScreen({ role, missions: propMissions, candidates: 
       <div className="content">
         <div className="screen">
           {(role === 'manager' || (role === 'admin' && view === 'manager')) && (
-            <ManagerView missions={missions} userId={userId} />
+            <ManagerView missions={propMissions} userId={userId} />
           )}
           {(role === 'entreprise' || (role === 'admin' && view === 'entreprise')) && (
-            <EntrepriseView candidates={candidates} userId={userId} />
+            <EntrepriseView candidates={propCandidates} userId={userId} />
           )}
         </div>
       </div>
