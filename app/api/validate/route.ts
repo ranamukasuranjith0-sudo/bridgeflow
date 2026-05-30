@@ -6,12 +6,10 @@ export async function POST(request: NextRequest) {
   try {
     const { id, type, action } = await request.json()
 
-    // Client normal pour lire les cookies de session
     const supabase = await createSupabaseServerClient()
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-    // Client admin pour toutes les opérations DB (bypasse les RLS)
     const supabaseAdmin = createSupabaseAdminClient()
 
     const { data: profile } = await supabaseAdmin
@@ -34,25 +32,28 @@ export async function POST(request: NextRequest) {
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-    // Envoi d'email uniquement à la validation
-    if (action === 'validate') {
-      const { data: profileData } = await supabaseAdmin
-        .from(table)
-        .select(type === 'candidate' ? 'name, email' : 'company_name, contact_name, email')
-        .eq('id', id)
-        .single() as { data: any }
+    // Envoi d'email pour validation ET refus
+    const { data: profileData } = await supabaseAdmin
+      .from(table)
+      .select(type === 'candidate' ? 'name, email' : 'company_name, contact_name, email')
+      .eq('id', id)
+      .single() as { data: any }
 
-      if (profileData?.email) {
-        const isCandidate = type === 'candidate'
-        const recipientName = isCandidate
-          ? profileData.name
-          : `${profileData.contact_name ?? ''} (${profileData.company_name})`
+    if (profileData?.email) {
+      const isCandidate = type === 'candidate'
+      const recipientName = isCandidate
+        ? profileData.name
+        : `${profileData.contact_name ?? ''} (${profileData.company_name})`
 
-        const subject = isCandidate
+      let subject: string
+      let html: string
+
+      if (action === 'validate') {
+        subject = isCandidate
           ? '✅ Votre profil BridgeFlow est validé — accès au Match activé'
           : '✅ Votre compte BridgeFlow est validé — accès au Match activé'
 
-        const html = isCandidate
+        html = isCandidate
           ? `
             <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a2e;">
               <div style="background: #0a0a0f; padding: 24px 32px; border-radius: 12px 12px 0 0;">
@@ -107,14 +108,69 @@ export async function POST(request: NextRequest) {
               </div>
             </div>
           `
+      } else {
+        // Email de refus
+        subject = isCandidate
+          ? '❌ Votre candidature BridgeFlow — Suite de votre dossier'
+          : '❌ Votre demande BridgeFlow — Suite de votre dossier'
 
-        await resend.emails.send({
-          from: 'BridgeFlow <contact@bridgeflow.consulting>',
-          to: profileData.email,
-          subject,
-          html,
-        })
+        html = isCandidate
+          ? `
+            <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a2e;">
+              <div style="background: #0a0a0f; padding: 24px 32px; border-radius: 12px 12px 0 0;">
+                <div style="font-size: 22px; font-weight: 700; color: #c8a96e; letter-spacing: 0.02em;">BridgeFlow</div>
+                <div style="font-size: 12px; color: #888; margin-top: 2px;">Management de transition d'élite</div>
+              </div>
+              <div style="background: #ffffff; padding: 32px; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb;">
+                <h2 style="margin: 0 0 16px; font-size: 20px;">Bonjour ${recipientName},</h2>
+                <p style="color: #444; line-height: 1.6;">
+                  Merci pour l'intérêt que vous portez à BridgeFlow et pour le temps accordé lors de notre échange.
+                </p>
+                <p style="color: #444; line-height: 1.6;">
+                  Après examen de votre dossier, nous ne sommes pas en mesure de donner suite à votre candidature pour le moment. Notre réseau est constitué de profils très spécialisés et nous devons maintenir des critères stricts de sélection.
+                </p>
+                <p style="color: #444; line-height: 1.6;">
+                  Cette décision ne remet pas en cause vos compétences. N'hésitez pas à revenir vers nous dans quelques mois si votre profil évolue.
+                </p>
+                <p style="color: #888; font-size: 12px; line-height: 1.6; margin-top: 24px;">
+                  Pour toute question, écrivez-nous à
+                  <a href="mailto:contact@bridgeflow.consulting" style="color: #c8a96e;">contact@bridgeflow.consulting</a>
+                </p>
+              </div>
+            </div>
+          `
+          : `
+            <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a2e;">
+              <div style="background: #0a0a0f; padding: 24px 32px; border-radius: 12px 12px 0 0;">
+                <div style="font-size: 22px; font-weight: 700; color: #c8a96e; letter-spacing: 0.02em;">BridgeFlow</div>
+                <div style="font-size: 12px; color: #888; margin-top: 2px;">Management de transition d'élite</div>
+              </div>
+              <div style="background: #ffffff; padding: 32px; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb;">
+                <h2 style="margin: 0 0 16px; font-size: 20px;">Bonjour ${recipientName},</h2>
+                <p style="color: #444; line-height: 1.6;">
+                  Merci pour votre confiance et pour le temps accordé lors de notre appel de qualification.
+                </p>
+                <p style="color: #444; line-height: 1.6;">
+                  Après étude de votre besoin, nous ne sommes pas en mesure d'y donner suite pour le moment. Il est possible que le profil recherché ne corresponde pas aux managers disponibles dans notre réseau actuellement.
+                </p>
+                <p style="color: #444; line-height: 1.6;">
+                  N'hésitez pas à revenir vers nous pour un prochain besoin — notre réseau évolue régulièrement.
+                </p>
+                <p style="color: #888; font-size: 12px; line-height: 1.6; margin-top: 24px;">
+                  Pour toute question, écrivez-nous à
+                  <a href="mailto:contact@bridgeflow.consulting" style="color: #c8a96e;">contact@bridgeflow.consulting</a>
+                </p>
+              </div>
+            </div>
+          `
       }
+
+      await resend.emails.send({
+        from: 'BridgeFlow <contact@bridgeflow.consulting>',
+        to: profileData.email,
+        subject,
+        html,
+      })
     }
 
     return NextResponse.json({ success: true, status: newStatus })
