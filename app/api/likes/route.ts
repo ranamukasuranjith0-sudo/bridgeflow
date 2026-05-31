@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { createSupabaseServerClient, createSupabaseAdminClient } from '@/lib/supabase-server'
 import { resend } from '@/lib/resend'
 
 export async function POST(request: NextRequest) {
@@ -19,8 +19,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
+    const supabaseAdmin = createSupabaseAdminClient()
+
     // Insert the like
-    const { data: like, error: likeError } = await supabase
+    const { data: like, error: likeError } = await supabaseAdmin
       .from('likes')
       .upsert({
         user_id: effectiveUserId,
@@ -39,28 +41,28 @@ export async function POST(request: NextRequest) {
     let calendlyLink: string | null = null
 
     if (target_type === 'mission') {
-      const { data: mission } = await supabase
+      const { data: mission } = await supabaseAdmin
         .from('missions')
         .select('id, company_id')
         .eq('id', target_id)
         .single()
 
       if (mission?.company_id) {
-        const { data: candidateProfile } = await supabase
+        const { data: candidateProfile } = await supabaseAdmin
           .from('candidates')
           .select('id')
           .eq('user_id', effectiveUserId)
           .single()
 
         if (candidateProfile) {
-          const { data: company } = await supabase
+          const { data: company } = await supabaseAdmin
             .from('companies')
             .select('id, user_id, calendly_link')
             .eq('id', mission.company_id)
             .single()
 
           if (company?.user_id) {
-            const { data: companyLike } = await supabase
+            const { data: companyLike } = await supabaseAdmin
               .from('likes')
               .select('id')
               .eq('user_id', company.user_id)
@@ -72,7 +74,7 @@ export async function POST(request: NextRequest) {
               matched = true
               calendlyLink = company.calendly_link ?? null
 
-              const { data: newMatch } = await supabase
+              const { data: newMatch } = await supabaseAdmin
                 .from('matches')
                 .upsert({
                   candidate_id: candidateProfile.id,
@@ -87,8 +89,7 @@ export async function POST(request: NextRequest) {
               matchRecord = newMatch
 
               if (newMatch) {
-                // ← Créer l'entretien dans interviews
-                await supabase.from('interviews').insert({
+                await supabaseAdmin.from('interviews').insert({
                   candidate_id: candidateProfile.id,
                   company_id: mission.company_id,
                   match_id: newMatch.id,
@@ -98,14 +99,14 @@ export async function POST(request: NextRequest) {
                   notes: '',
                 })
 
-                await sendMatchEmails(supabase, candidateProfile.id, company.id, mission.id, calendlyLink)
+                await sendMatchEmails(supabaseAdmin, candidateProfile.id, company.id, mission.id, calendlyLink)
               }
             }
           }
         }
       }
     } else if (target_type === 'candidate') {
-      const { data: companyProfile } = await supabase
+      const { data: companyProfile } = await supabaseAdmin
         .from('companies')
         .select('id, calendly_link')
         .eq('user_id', effectiveUserId)
@@ -114,22 +115,22 @@ export async function POST(request: NextRequest) {
       if (companyProfile) {
         calendlyLink = companyProfile.calendly_link ?? null
 
-        const { data: companyMissions } = await supabase
+        const { data: companyMissions } = await supabaseAdmin
           .from('missions')
           .select('id')
           .eq('company_id', companyProfile.id)
 
-        const missionIds = (companyMissions ?? []).map(m => m.id)
+        const missionIds = (companyMissions ?? []).map((m: any) => m.id)
 
         if (missionIds.length > 0) {
-          const { data: candidate } = await supabase
+          const { data: candidate } = await supabaseAdmin
             .from('candidates')
             .select('id, user_id')
             .eq('id', target_id)
             .single()
 
           if (candidate?.user_id) {
-            const { data: candidateLike } = await supabase
+            const { data: candidateLike } = await supabaseAdmin
               .from('likes')
               .select('id, target_id')
               .eq('user_id', candidate.user_id)
@@ -141,7 +142,7 @@ export async function POST(request: NextRequest) {
             if (candidateLike) {
               matched = true
 
-              const { data: newMatch } = await supabase
+              const { data: newMatch } = await supabaseAdmin
                 .from('matches')
                 .upsert({
                   candidate_id: candidate.id,
@@ -156,8 +157,7 @@ export async function POST(request: NextRequest) {
               matchRecord = newMatch
 
               if (newMatch) {
-                // ← Créer l'entretien dans interviews
-                await supabase.from('interviews').insert({
+                await supabaseAdmin.from('interviews').insert({
                   candidate_id: candidate.id,
                   company_id: companyProfile.id,
                   match_id: newMatch.id,
@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
                   notes: '',
                 })
 
-                await sendMatchEmails(supabase, candidate.id, companyProfile.id, candidateLike.target_id, calendlyLink)
+                await sendMatchEmails(supabaseAdmin, candidate.id, companyProfile.id, candidateLike.target_id, calendlyLink)
               }
             }
           }
@@ -183,7 +183,7 @@ export async function POST(request: NextRequest) {
 }
 
 async function sendMatchEmails(
-  supabase: Awaited<ReturnType<typeof import('@/lib/supabase-server').createSupabaseServerClient>>,
+  supabaseAdmin: ReturnType<typeof createSupabaseAdminClient>,
   candidateId: string,
   companyId: string,
   missionId: string,
@@ -191,9 +191,9 @@ async function sendMatchEmails(
 ) {
   try {
     const [{ data: candidate }, { data: company }, { data: mission }] = await Promise.all([
-      supabase.from('candidates').select('name, email').eq('id', candidateId).single(),
-      supabase.from('companies').select('company_name, email').eq('id', companyId).single(),
-      supabase.from('missions').select('title, tjm, duration, location').eq('id', missionId).single(),
+      supabaseAdmin.from('candidates').select('name, email').eq('id', candidateId).single(),
+      supabaseAdmin.from('companies').select('company_name, email').eq('id', companyId).single(),
+      supabaseAdmin.from('missions').select('title, tjm, duration, location').eq('id', missionId).single(),
     ])
 
     if (candidate && company && mission) {
