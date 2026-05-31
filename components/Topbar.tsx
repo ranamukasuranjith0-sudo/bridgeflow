@@ -6,12 +6,25 @@ interface TopbarProps {
   currentView?: 'manager' | 'entreprise'
   onViewChange?: (view: 'manager' | 'entreprise') => void
   userRole?: string
+  onMenuToggle?: () => void
 }
 
-export default function Topbar({ title, showViewPill, currentView, onViewChange, userRole }: TopbarProps) {
+export default function Topbar({ title, showViewPill, currentView, onViewChange, userRole, onMenuToggle }: TopbarProps) {
   return (
     <div className="topbar">
-      <div className="topbar-title">{title}</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        {/* Burger button — visible uniquement sur mobile */}
+        <button
+          className="burger-btn"
+          onClick={onMenuToggle}
+          style={{ display: 'none' }}
+          id="burger-btn"
+          aria-label="Menu"
+        >
+          ☰
+        </button>
+        <div className="topbar-title">{title}</div>
+      </div>
       <div className="topbar-right">
         {showViewPill && userRole === 'admin' && onViewChange && (
           <div className="view-pill">
@@ -26,17 +39,7 @@ export default function Topbar({ title, showViewPill, currentView, onViewChange,
               onClick={() => onViewChange('entreprise')}
             >
               Vue Recruteur{' '}
-              <span
-                style={{
-                  display: 'inline-block',
-                  width: 7,
-                  height: 7,
-                  background: 'var(--red)',
-                  borderRadius: '50%',
-                  marginLeft: 4,
-                  verticalAlign: 'middle',
-                }}
-              />
+              <span style={{ display: 'inline-block', width: 7, height: 7, background: 'var(--red)', borderRadius: '50%', marginLeft: 4, verticalAlign: 'middle' }} />
             </button>
           </div>
         )}
