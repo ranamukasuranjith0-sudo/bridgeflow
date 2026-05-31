@@ -31,7 +31,6 @@ function getNavItems(role: string): NavItem[] {
       { href: '/dashboard/register', icon: '⊕', label: 'Nouvelle inscription' },
     ]
   }
-  // entreprise
   return [
     { href: '/dashboard', icon: '⌂', label: 'Accueil' },
     { href: '/dashboard/entreprise', icon: '📊', label: 'Mes missions' },
@@ -61,25 +60,11 @@ interface SidebarProps {
 
 export default function Sidebar({ profile }: SidebarProps) {
   const pathname = usePathname()
-  const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
 
   const role = profile?.role ?? 'manager'
   const navItems = getNavItems(role)
   const initials = getInitials(profile?.name ?? null, profile?.email ?? 'BF')
-
-  // Afficher/masquer le burger button via CSS injection
-  useEffect(() => {
-    const style = document.createElement('style')
-    style.id = 'burger-style'
-    style.textContent = `
-      @media (max-width: 768px) {
-        #burger-btn { display: flex !important; }
-      }
-    `
-    document.head.appendChild(style)
-    return () => { document.getElementById('burger-style')?.remove() }
-  }, [])
 
   // Fermer la sidebar quand on navigue
   useEffect(() => {
@@ -98,7 +83,17 @@ export default function Sidebar({ profile }: SidebarProps) {
 
   return (
     <>
-      {/* Overlay mobile */}
+      {/* Bouton burger fixe sur mobile */}
+      <button
+        className="burger-fixed"
+        style={{ display: 'none' }}
+        onClick={() => setIsOpen(true)}
+        aria-label="Ouvrir le menu"
+      >
+        ☰
+      </button>
+
+      {/* Overlay sombre */}
       {isOpen && (
         <div
           className="sidebar-overlay show"
@@ -113,11 +108,11 @@ export default function Sidebar({ profile }: SidebarProps) {
             <div className="logo">Bridge<span>Flow</span></div>
             <div className="logo-sub">Management de Transition</div>
           </div>
-          {/* Bouton fermer sur mobile */}
+          {/* Bouton fermer — mobile uniquement */}
           <button
             onClick={() => setIsOpen(false)}
-            style={{ background: 'none', border: 'none', color: 'var(--text3)', fontSize: 20, cursor: 'pointer', display: 'none' }}
-            id="close-sidebar-btn"
+            style={{ background: 'none', border: 'none', color: 'var(--text3)', fontSize: 22, cursor: 'pointer', lineHeight: 1 }}
+            aria-label="Fermer le menu"
           >
             ✕
           </button>
