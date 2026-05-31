@@ -82,12 +82,24 @@ interface PipelineItem {
   steps: Array<{ label: string; type: 'step' | 'line'; status: 'done' | 'active' | '' }>
 }
 
+interface RealPipelineItem {
+  id: string
+  candidate_name: string
+  company_name: string
+  role: string
+  tjm: number | null
+  location: string
+  duration: string
+  status: string
+}
+
 interface AdminScreenProps {
   kpis: KPIs
   interviews?: RealInterview[]
   googleConnected?: boolean
   pendingCandidates?: PendingProfile[]
   pendingCompanies?: PendingProfile[]
+  pipeline?: RealPipelineItem[]
 }
 
 const STATIC_INTERVIEWS: Interview[] = [
@@ -218,12 +230,21 @@ function convertRealInterview(r: RealInterview): Interview {
   }
 }
 
+function getInitialsFromName(name: string): string {
+  const parts = name.trim().split(' ')
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
+  return name.substring(0, 2).toUpperCase()
+}
+
+const AVATAR_COLORS = ['#7c3aed', '#059669', '#b45309', '#be185d', '#0369a1']
+
 export default function AdminScreen({
   kpis,
   interviews: realInterviews = [],
   googleConnected = false,
   pendingCandidates = [],
   pendingCompanies = [],
+  pipeline: realPipeline = [],
 }: AdminScreenProps) {
   const [selectedInterview, setSelectedInterview] = useState<Interview | null>(null)
   const [generatingMeet, setGeneratingMeet] = useState(false)
@@ -510,32 +531,49 @@ export default function AdminScreen({
           </div>
 
           <div className="card" id="pipeline">
-            <div className="card-title"><span className="dot"></span>Pipeline matchs</div>
-            {PIPELINE.map(p => (
-              <div key={p.id} className="pipeline-item">
-                <div className="pipe-header">
-                  <div className="pipe-av" style={{ background: p.av1.color }}>{p.av1.initials}</div>
-                  <div className="pipe-heart">♥</div>
-                  <div className="pipe-av" style={{ background: p.av2.color }}>{p.av2.initials}</div>
-                  <div style={{ marginLeft: 8 }}>
-                    <div className="pipe-names">{p.names}</div>
-                    <div className="pipe-detail-txt">{p.detail}</div>
-                  </div>
-                  <span className={`pipe-badge ${p.badge.className}`}>{p.badge.label}</span>
-                </div>
-                <div className="pipe-progress">
-                  {p.steps.map((step, i) =>
-                    step.type === 'step' ? (
-                      <div key={i} className={`pipe-step${step.status === 'done' ? ' done' : step.status === 'active' ? ' active' : ''}`}>
-                        {step.label}
-                      </div>
-                    ) : (
-                      <div key={i} className={`pipe-line${step.status === 'done' ? ' done' : step.status === 'active' ? ' active' : ''}`}></div>
-                    )
-                  )}
-                </div>
+            <div className="card-title"><span className="dot"></span>Pipeline matchs
+              {realPipeline.length > 0 && (
+                <span style={{ fontSize: 10, color: 'var(--green)', marginLeft: 8 }}>Live</span>
+              )}
+            </div>
+            {realPipeline.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text3)', fontSize: 13 }}>
+                <div style={{ fontSize: 32, marginBottom: 8 }}>🔗</div>
+                Aucun match en cours pour l&apos;instant.
               </div>
-            ))}
+            ) : (
+              realPipeline.map((p, idx) => {
+                const av1Color = AVATAR_COLORS[idx % AVATAR_COLORS.length]
+                const av2Color = AVATAR_COLORS[(idx + 2) % AVATAR_COLORS.length]
+                const isConfirmed = p.status === 'confirmed'
+                const badgeLabel = isConfirmed ? 'Entretien' : 'En attente'
+                const badgeClass = isConfirmed ? 'pipe-badge-interview' : 'pipe-badge-pending'
+                const detail = [p.role, p.tjm ? `${p.tjm.toLocaleString('fr-FR')} EUR/j` : null, p.location, p.duration].filter(Boolean).join(' - ')
+                return (
+                  <div key={p.id} className="pipeline-item">
+                    <div className="pipe-header">
+                      <div className="pipe-av" style={{ background: av1Color }}>{getInitialsFromName(p.candidate_name)}</div>
+                      <div className="pipe-heart">♥</div>
+                      <div className="pipe-av" style={{ background: av2Color }}>{getInitialsFromName(p.company_name)}</div>
+                      <div style={{ marginLeft: 8 }}>
+                        <div className="pipe-names">{p.candidate_name} x {p.company_name}</div>
+                        <div className="pipe-detail-txt">{detail}</div>
+                      </div>
+                      <span className={`pipe-badge ${badgeClass}`}>{badgeLabel}</span>
+                    </div>
+                    <div className="pipe-progress">
+                      <div className="pipe-step done">Qualif. cand.</div>
+                      <div className="pipe-line done"></div>
+                      <div className="pipe-step done">Qualif. entrep.</div>
+                      <div className="pipe-line active"></div>
+                      <div className={`pipe-step ${isConfirmed ? 'active' : ''}`}>Entretien match</div>
+                      <div className="pipe-line"></div>
+                      <div className="pipe-step">Placé</div>
+                    </div>
+                  </div>
+                )
+              })
+            )}
           </div>
         </div>
 
