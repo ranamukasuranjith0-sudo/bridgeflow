@@ -32,6 +32,22 @@ export async function POST(request: NextRequest) {
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+    // ✅ Si validation d'une entreprise → activer sa mission
+    if (action === 'validate' && type === 'company') {
+      await supabaseAdmin
+        .from('missions')
+        .update({ status: 'active' })
+        .eq('company_id', id)
+    }
+
+    // ✅ Si refus d'une entreprise → fermer sa mission
+    if (action === 'reject' && type === 'company') {
+      await supabaseAdmin
+        .from('missions')
+        .update({ status: 'closed' })
+        .eq('company_id', id)
+    }
+
     // Envoi d'email pour validation ET refus
     const { data: profileData } = await supabaseAdmin
       .from(table)
@@ -109,7 +125,6 @@ export async function POST(request: NextRequest) {
             </div>
           `
       } else {
-        // Email de refus
         subject = isCandidate
           ? '❌ Votre candidature BridgeFlow — Suite de votre dossier'
           : '❌ Votre demande BridgeFlow — Suite de votre dossier'
