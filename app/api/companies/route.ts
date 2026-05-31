@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
 
     const {
       company_name, contact_name, email, phone, size,
-      role_needed, duration, budget_tjm, location,
+      role_needed, mission_type, duration, budget_tjm, location,
       start_date, context, required_skills, calendly_link,
     } = body
 
@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
 
     const supabaseAdmin = createSupabaseAdminClient()
 
+    // 1. Créer l'entreprise
     const { data: company, error: dbError } = await supabaseAdmin
       .from('companies')
       .insert({
@@ -31,6 +32,7 @@ export async function POST(request: NextRequest) {
         phone: phone ?? null,
         size: size ?? null,
         role_needed: role_needed ?? null,
+        mission_type: mission_type ?? null,
         duration: duration ?? null,
         budget_tjm: budget_tjm ?? null,
         location: location ?? null,
@@ -48,7 +50,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: dbError.message }, { status: 500 })
     }
 
-    // ✅ Mettre à jour le rôle dans profiles → entreprise
+    // 2. Mettre à jour le rôle dans profiles → entreprise
     if (session?.user.id) {
       await supabaseAdmin
         .from('profiles')
@@ -56,7 +58,44 @@ export async function POST(request: NextRequest) {
         .eq('id', session.user.id)
     }
 
-    // Send confirmation emails
+    // 3. Créer automatiquement la mission depuis les données du formulaire
+    if (role_needed && company?.id) {
+      const words = company_name.trim().split(' ')
+      const initials = words.length >= 2
+        ? (words[0][0] + words[1][0]).toUpperCase()
+        : company_name.substring(0, 2).toUpperCase()
+
+      const COLORS = ['#7c3aed', '#059669', '#b45309', '#be185d', '#0369a1', '#c8a96e']
+      const color = COLORS[Math.floor(Math.random() * COLORS.length)]
+
+      const urgency = start_date === 'Immédiat' ? 'Immédiat'
+        : start_date === 'Sous 2 semaines' ? 'Urgent'
+        : 'Sous 1 mois'
+
+      const missionTitle = mission_type
+        ? `${role_needed} — ${mission_type}`
+        : role_needed
+
+      await supabaseAdmin
+        .from('missions')
+        .insert({
+          company_id: company.id,
+          title: missionTitle,
+          role: role_needed,
+          location: location ?? null,
+          tjm: budget_tjm ?? null,
+          duration: duration ?? '6 mois',
+          urgency,
+          tags: required_skills ?? [],
+          summary: context ?? null,
+          context: `${size ? size + ' · ' : ''}${company_name}`,
+          initials,
+          color,
+          status: 'pending', // devient active après validation admin
+        })
+    }
+
+    // 4. Envoyer les emails
     try {
       await resend.emails.send({
         from: 'BridgeFlow <contact@bridgeflow.consulting>',
