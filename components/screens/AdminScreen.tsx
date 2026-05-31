@@ -296,9 +296,7 @@ export default function AdminScreen({
     setGeneratingMeet(false)
   }
 
-  const interviews: Interview[] = realInterviews.length > 0
-    ? realInterviews.map(convertRealInterview)
-    : STATIC_INTERVIEWS
+  const interviews: Interview[] = realInterviews.map(convertRealInterview)
 
   const allPending = [
     ...pendingCandidates.map(p => ({ ...p, type: 'candidate' as const })),
