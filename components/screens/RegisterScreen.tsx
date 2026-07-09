@@ -173,6 +173,7 @@ function ManagerForm() {
       if (file.size > 5 * 1024 * 1024) { setError('Le CV ne doit pas dépasser 5MB.'); return }
       setCvFile(file)
       setCvName(file.name)
+      setError('')
     }
   }
 
@@ -182,6 +183,7 @@ function ManagerForm() {
     if (!form.email.trim()) { setError("L'email est obligatoire."); return }
     if (!form.phone.trim()) { setError('Le téléphone est obligatoire.'); return }
     if (!form.availability) { setError('La disponibilité est obligatoire.'); return }
+    if (!cvFile) { setError('Le CV est obligatoire. Veuillez uploader votre CV en PDF.'); return }
 
     setLoading(true)
     setError('')
@@ -257,7 +259,7 @@ function ManagerForm() {
             <div className="form-group full"><label>Résumé expérience</label><textarea placeholder="15 ans d'expérience en direction financière..." value={form.experienceSummary} onChange={e => setForm(f => ({ ...f, experienceSummary: e.target.value }))} /></div>
             <div className="form-group full"><label>Secteurs d&apos;expertise</label><TagSelector tags={SECTORS} selected={selectedSectors} onToggle={toggleSector} /></div>
             <div className="form-group full">
-              <label>CV (PDF)</label>
+              <label>CV (PDF) {REQ}</label>
               <div className="upload-zone" onClick={() => fileInputRef.current?.click()}>
                 <div className="upload-icon">📄</div>
                 <div className="upload-txt">{cvName ? `✓ ${cvName}` : 'Glissez votre CV ici ou cliquez pour uploader'}</div>
